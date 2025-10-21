@@ -1,3 +1,4 @@
+// Database connection setup using Drizzle ORM and Neon serverless
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
