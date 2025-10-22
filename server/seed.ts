@@ -1,76 +1,54 @@
 import { db } from "./db";
-import { users, userProfiles, accessLogs } from "@shared/schema";
 import bcrypt from "bcryptjs";
 
 async function seed() {
   console.log("🌱 Seeding database...");
 
   try {
-    // Create hardware users
-    const hardwareUsers = [
-      { id: 1, fingerId: 101, password: "1234" },
-      { id: 2, fingerId: 102, password: "5678" },
-      { id: 3, fingerId: 103, password: "9012" },
+    const users = [
+      { id: 1, fingerId: 101, password: "000000" },
+      { id: 2, fingerId: 102, password: "000000" },
+      { id: 3, fingerId: 103, password: "000000" },
     ];
 
-    for (const user of hardwareUsers) {
-      await db.insert(users).values(user).onConflictDoNothing();
+    // Insert users (hardware records)
+    for (const user of users) {
+      await db.query(
+        "INSERT IGNORE INTO users (id, finger_id, password) VALUES (?, ?, ?)", 
+        [user.id, user.fingerId, user.password]
+      );
     }
-    console.log("✓ Hardware users created");
-
-    // Create user profiles
-    const adminPasswordHash = await bcrypt.hash("admin123", 10);
-    const userPasswordHash = await bcrypt.hash("user123", 10);
 
     const profiles = [
       {
         userId: 1,
         email: "admin@example.com",
-        mobile: "+1 (555) 123-4567",
-        passwordHash: adminPasswordHash,
-        role: "admin" as const,
+        mobile: "9999999999",
+        passwordHash: await bcrypt.hash("123456", 10),
+        role: "admin",
       },
       {
         userId: 2,
         email: "user@example.com",
-        mobile: "+1 (555) 987-6543",
-        passwordHash: userPasswordHash,
-        role: "user" as const,
+        mobile: "8888888888",
+        passwordHash: await bcrypt.hash("654321", 10),
+        role: "user",
       },
     ];
 
-    for (const profile of profiles) {
-      await db.insert(userProfiles).values(profile).onConflictDoNothing();
+    // Insert user profiles (web app records)
+    for (const p of profiles) {
+      await db.query(
+        `INSERT IGNORE INTO user_profiles (user_id, email, mobile, password_hash, role)
+         VALUES (?, ?, ?, ?, ?)`,
+        [p.userId, p.email, p.mobile, p.passwordHash, p.role]
+      );
     }
-    console.log("✓ User profiles created");
-    console.log("  Admin: admin@example.com / admin123");
-    console.log("  User: user@example.com / user123");
-
-    // Create sample access logs
-    const logs = [
-      { userId: 1, result: "GRANTED" as const, note: "Hardware fingerprint authentication" },
-      { userId: 2, result: "GRANTED" as const, note: "Hardware fingerprint authentication" },
-      { userId: 1, result: "GRANTED" as const, note: "Morning access" },
-      { userId: 2, result: "DENIED" as const, note: "Invalid fingerprint" },
-      { userId: 1, result: "GRANTED" as const, note: "Afternoon access" },
-      { userId: 3, result: "REGISTERED" as const, note: "New fingerprint registered" },
-    ];
-
-    for (const log of logs) {
-      await db.insert(accessLogs).values(log);
-    }
-    console.log("✓ Sample access logs created");
-
-    console.log("✅ Database seeded successfully!");
-  } catch (error) {
-    console.error("❌ Error seeding database:", error);
-    throw error;
+    
+    console.log("✅ Seeded users and profiles successfully!");
+  } catch (err) {
+    console.error("❌ Seed failed:", err);
   }
 }
 
-seed()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+seed().then(() => process.exit(0));

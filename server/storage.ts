@@ -1,201 +1,203 @@
-import {
-  users,
-  userProfiles,
-  accessLogs,
-  type User,
-  type InsertUser,
-  type UserProfile,
-  type InsertUserProfile,
-  type AccessLog,
-  type InsertAccessLog,
-  type UserWithProfile,
-  type AccessLogWithUser,
-  type SystemStats,
-} from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, gte, and, sql } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import type { UserProfile, User, InsertUserProfile } from "@shared/schema";
 
-export interface IStorage {
-  // User operations
-  getUser(id: number): Promise<User | undefined>;
-  getUserWithProfile(id: number): Promise<UserWithProfile | undefined>;
-  getAllUsersWithProfiles(): Promise<UserWithProfile[]>;
-  createUser(user: InsertUser): Promise<User>;
-  deleteUser(id: number): Promise<void>;
+// Helper function to extract the first row and its fields, then maps to UserWithProfile
+function mapToUserWithProfile(row: any) {
+  if (!row) return null;
   
-  // User profile operations
-  getUserProfileByEmail(email: string): Promise<UserProfile | undefined>;
-  getUserProfileByUserId(userId: number): Promise<UserProfile | undefined>;
-  createUserProfile(profile: Omit<InsertUserProfile, "role"> & { role?: "admin" | "user"; passwordHash: string }): Promise<UserProfile>;
-  
-  // Access log operations
-  getAllAccessLogs(): Promise<AccessLogWithUser[]>;
-  getRecentAccessLogs(limit: number): Promise<AccessLogWithUser[]>;
-  getUserAccessLogs(userId: number): Promise<AccessLogWithUser[]>;
-  createAccessLog(log: InsertAccessLog): Promise<AccessLog>;
-  
-  // Stats
-  getSystemStats(): Promise<SystemStats>;
+  const user: User = {
+    id: row.id,
+    fingerId: row.finger_id,
+    password: row.password, 
+    createdAt: row.created_at,
+  };
+
+  const profile: UserProfile | null = row.email ? {
+    id: row.profile_id,
+    userId: row.user_id,
+    email: row.email,
+    mobile: row.mobile,
+    password_hash: row.password_hash,
+    role: row.role,
+    createdAt: row.profile_created_at,
+  } : null;
+
+  return { ...user, profile };
 }
 
-export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+class DatabaseStorage {
+  // =============== USERS (HARDWARE) ==================
+
+  async getUser(id: number): Promise<User | null> {
+    const [rows]: any = await db.query("SELECT * FROM users WHERE id = ?", [id]);
+    return rows[0] || null;
   }
 
-  async getUserWithProfile(id: number): Promise<UserWithProfile | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
-      .where(eq(users.id, id));
+  async createUser(data: { id: number; fingerId: number; password: string }) {
+    await db.query("INSERT INTO users (id, finger_id, password) VALUES (?, ?, ?)", [
+      data.id,
+      data.fingerId,
+      data.password,
+    ]);
+  }
+
+  async deleteUser(id: number) {
+    await db.query("DELETE FROM users WHERE id = ?", [id]);
+  }
+
+  async getAllUsersWithProfiles() {
+    const [rows]: any = await db.query(`
+      SELECT
+          u.id, u.finger_id, u.password, u.created_at,
+          p.id as profile_id, p.user_id, p.email, p.mobile, p.role, p.password_hash, p.created_at as profile_created_at
+      FROM users u
+      LEFT JOIN user_profiles p ON u.id = p.user_id
+      ORDER BY u.id
+    `);
     
-    if (!user) return undefined;
-    
+    return rows.map((row: any) => ({
+      id: row.id,
+      fingerId: row.finger_id,
+      password: row.password,
+      createdAt: row.created_at,
+      profile: row.profile_id ? {
+        id: row.profile_id,
+        userId: row.user_id,
+        email: row.email,
+        mobile: row.mobile,
+        password_hash: row.password_hash,
+        role: row.role,
+        createdAt: row.profile_created_at,
+      } : null,
+    }));
+  }
+
+  async getUserWithProfile(userId: number) {
+    const [rows]: any = await db.query(
+      `SELECT
+          u.id, u.finger_id, u.password, u.created_at,
+          p.id as profile_id, p.user_id, p.email, p.mobile, p.role, p.password_hash, p.created_at as profile_created_at
+      FROM users u
+      LEFT JOIN user_profiles p ON u.id = p.user_id
+      WHERE u.id = ?`,
+      [userId]
+    );
+
+    const row = rows[0];
+    if (!row) return null;
+
     return {
-      ...user.users,
-      profile: user.user_profiles || null,
+      id: row.id,
+      fingerId: row.finger_id,
+      password: row.password,
+      createdAt: row.created_at,
+      profile: row.profile_id ? {
+        id: row.profile_id,
+        userId: row.user_id,
+        email: row.email,
+        mobile: row.mobile,
+        password_hash: row.password_hash,
+        role: row.role,
+        createdAt: row.profile_created_at,
+      } : null,
     };
   }
 
-  async getAllUsersWithProfiles(): Promise<UserWithProfile[]> {
-    const result = await db
-      .select()
-      .from(users)
-      .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
-      .orderBy(desc(users.createdAt));
+
+  // =============== USER PROFILES (WEB) ==================
+  
+  async getUserProfileByUserId(userId: number) {
+    const [rows]: any = await db.query("SELECT * FROM user_profiles WHERE user_id = ?", [userId]);
+    return rows[0] || null;
+  }
+  
+  async getUserProfileByEmail(email: string) {
+    const [rows]: any = await db.query("SELECT * FROM user_profiles WHERE email = ?", [email]);
+    return rows[0] || null;
+  }
+  
+  async createUserProfile(profile: Omit<InsertUserProfile, 'password'> & { passwordHash: string }) {
+    await db.query(
+      `INSERT INTO user_profiles (user_id, email, mobile, password_hash, role)
+       VALUES (?, ?, ?, ?, ?)`,
+      [profile.userId, profile.email, profile.mobile || null, profile.passwordHash, profile.role || "user"]
+    );
+  }
+
+  // =============== ACCESS LOGS ==================
+
+  async createAccessLog(data: { userId: number; result: string; note?: string }) {
+    await db.query(
+      `INSERT INTO access_logs (user_id, result, note, created_at)
+       VALUES (?, ?, ?, NOW())`,
+      [data.userId, data.result, data.note || null]
+    );
+  }
+
+  async getRecentAccessLogs(limit = 50) {
+    const [rows]: any = await db.query(
+      `SELECT 
+           l.id,
+           l.user_id AS userId,
+           l.result,
+           l.note,
+           l.created_at AS createdAt,
+           p.email,
+           p.mobile
+        FROM access_logs l
+        LEFT JOIN user_profiles p ON l.user_id = p.user_id
+        ORDER BY l.created_at DESC
+        LIMIT ?`,
+      [limit]
+    );
+    return rows;
+  }
+
+  async getUserAccessLogs(userId: number) {
+    const [rows]: any = await db.query(
+      `SELECT
+           l.id,
+           l.user_id AS userId,
+           l.result,
+           l.note,
+           l.created_at AS createdAt,
+           p.email,
+           p.mobile
+        FROM access_logs l
+        LEFT JOIN user_profiles p ON l.user_id = p.user_id
+        WHERE l.user_id = ?
+        ORDER BY l.created_at DESC`,
+      [userId]
+    );
+    return rows;
+  }
+
+  // FIXED: Added checks for array indexing and simplified to safely access the total property.
+  async getSystemStats() {
+    // MySQL query returns [[rows], [fields]]
+    const [userCountRows]: any = await db.query("SELECT COUNT(*) AS total FROM users");
+    const [logCountRows]: any = await db.query("SELECT COUNT(*) AS total FROM access_logs");
+
+    const [todayStatsRows]: any = await db.query(`
+        SELECT
+            SUM(CASE WHEN result = 'GRANTED' AND DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) AS accessGrantedToday,
+            SUM(CASE WHEN result = 'DENIED' AND DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) AS accessDeniedToday
+        FROM access_logs
+    `);
     
-    return result.map(row => ({
-      ...row.users,
-      profile: row.user_profiles || null,
-    }));
-  }
+    // Safely get the total count. Check if the result array exists and has elements.
+    const totalUsers = userCountRows && userCountRows.length > 0 ? userCountRows[0].total : 0;
+    const totalAccessLogs = logCountRows && logCountRows.length > 0 ? logCountRows[0].total : 0;
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
-  }
-
-  async deleteUser(id: number): Promise<void> {
-    await db.delete(users).where(eq(users.id, id));
-  }
-
-  async getUserProfileByEmail(email: string): Promise<UserProfile | undefined> {
-    const [profile] = await db
-      .select()
-      .from(userProfiles)
-      .where(eq(userProfiles.email, email));
-    return profile || undefined;
-  }
-
-  async getUserProfileByUserId(userId: number): Promise<UserProfile | undefined> {
-    const [profile] = await db
-      .select()
-      .from(userProfiles)
-      .where(eq(userProfiles.userId, userId));
-    return profile || undefined;
-  }
-
-  async createUserProfile(profile: Omit<InsertUserProfile, "role"> & { role?: "admin" | "user"; passwordHash: string }): Promise<UserProfile> {
-    const [newProfile] = await db
-      .insert(userProfiles)
-      .values(profile)
-      .returning();
-    return newProfile;
-  }
-
-  async getAllAccessLogs(): Promise<AccessLogWithUser[]> {
-    const result = await db
-      .select()
-      .from(accessLogs)
-      .leftJoin(users, eq(accessLogs.userId, users.id))
-      .orderBy(desc(accessLogs.createdAt))
-      .limit(100);
+    // The aggregation functions (SUM) will always return one row, even if values are NULL/0
+    const todayStats = todayStatsRows && todayStatsRows.length > 0 ? todayStatsRows[0] : {};
     
-    return result.map(row => ({
-      ...row.access_logs,
-      user: row.users || null,
-    }));
-  }
-
-  async getRecentAccessLogs(limit: number): Promise<AccessLogWithUser[]> {
-    const result = await db
-      .select()
-      .from(accessLogs)
-      .leftJoin(users, eq(accessLogs.userId, users.id))
-      .orderBy(desc(accessLogs.createdAt))
-      .limit(limit);
-    
-    return result.map(row => ({
-      ...row.access_logs,
-      user: row.users || null,
-    }));
-  }
-
-  async getUserAccessLogs(userId: number): Promise<AccessLogWithUser[]> {
-    const result = await db
-      .select()
-      .from(accessLogs)
-      .leftJoin(users, eq(accessLogs.userId, users.id))
-      .where(eq(accessLogs.userId, userId))
-      .orderBy(desc(accessLogs.createdAt));
-    
-    return result.map(row => ({
-      ...row.access_logs,
-      user: row.users || null,
-    }));
-  }
-
-  async createAccessLog(log: InsertAccessLog): Promise<AccessLog> {
-    const [newLog] = await db
-      .insert(accessLogs)
-      .values(log)
-      .returning();
-    return newLog;
-  }
-
-  async getSystemStats(): Promise<SystemStats> {
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    const [userCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(users);
-
-    const [logCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(accessLogs);
-
-    const [grantedToday] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(accessLogs)
-      .where(
-        and(
-          eq(accessLogs.result, "GRANTED"),
-          gte(accessLogs.createdAt, startOfToday)
-        )
-      );
-
-    const [deniedToday] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(accessLogs)
-      .where(
-        and(
-          eq(accessLogs.result, "DENIED"),
-          gte(accessLogs.createdAt, startOfToday)
-        )
-      );
-
     return {
-      totalUsers: userCount?.count || 0,
-      totalAccessLogs: logCount?.count || 0,
-      accessGrantedToday: grantedToday?.count || 0,
-      accessDeniedToday: deniedToday?.count || 0,
-      hardwareConnected: false, // Will be set by hardware service
+        totalUsers: totalUsers,
+        totalAccessLogs: totalAccessLogs,
+        accessGrantedToday: todayStats.accessGrantedToday || 0,
+        accessDeniedToday: todayStats.accessDeniedToday || 0,
     };
   }
 }

@@ -1,16 +1,14 @@
-// Database connection setup using Drizzle ORM and Neon serverless
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+import mysql from "mysql2/promise";
+import dotenv from "dotenv";
 
-neonConfig.webSocketConstructor = ws;
+dotenv.config();
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
-}
+export const db = await mysql.createPool({
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "Suyog@4398sql", // change if needed
+  database: process.env.DB_NAME || "authintegrate",
+  connectionLimit: 10,
+});
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+console.log("✅ Connected to MySQL successfully!");

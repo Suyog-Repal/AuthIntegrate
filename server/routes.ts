@@ -9,11 +9,10 @@ import { hardwareService } from "./services/hardwareService";
 import { loginSchema, insertUserProfileSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Session middleware - SESSION_SECRET is mandatory for security
+  // ==================== SESSION SETUP ====================
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET must be set in environment variables");
   }
-  
   app.use(
     session({
       secret: process.env.SESSION_SECRET,
@@ -26,39 +25,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
-  // ==================== Authentication Routes ====================
-  
+  // ==================== AUTHENTICATION ROUTES ====================
+
   // Register new user profile
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const data = insertUserProfileSchema.extend({
-        password: insertUserProfileSchema.shape.password,
-      }).parse(req.body);
-
-      // Check if user exists in hardware users table
+      const data = insertUserProfileSchema.parse(req.body);
+      
       const user = await storage.getUser(data.userId);
       if (!user) {
-        return res.status(400).json({ 
-          message: "Hardware user ID not found. Please register fingerprint first." 
+        return res.status(400).json({
+          message: "User not found in hardware database. Please ensure fingerprint registration first.",
         });
       }
-
-      // Check if profile already exists
+      
       const existingProfile = await storage.getUserProfileByUserId(data.userId);
       if (existingProfile) {
-        return res.status(400).json({ message: "Profile already exists for this user ID" });
+        return res.status(400).json({ message: "Profile already exists for this User ID" });
       }
-
-      // Check if email already exists
+      
       const existingEmail = await storage.getUserProfileByEmail(data.email);
       if (existingEmail) {
         return res.status(400).json({ message: "Email already in use" });
       }
-
-      // Hash password
+      
+      if (data.password && !/^\d{6}$/.test(data.password)) {
+         return res.status(400).json({ message: "Password must be exactly 6 digits (numbers only)" });
+      }
+      
       const passwordHash = await bcrypt.hash(data.password, 10);
 
-      // Create profile
       await storage.createUserProfile({
         userId: data.userId,
         email: data.email,
@@ -78,25 +74,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
-
-      const profile = await storage.getUserProfileByEmail(email);
+      const profile = await storage.getUserProfileByEmail(email); 
+      
       if (!profile) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-
-      const valid = await bcrypt.compare(password, profile.passwordHash);
+      
+      const valid = await bcrypt.compare(password, profile.password_hash);
       if (!valid) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Regenerate session to prevent session fixation attacks
       req.session.regenerate((err) => {
         if (err) {
           console.error("Session regeneration error:", err);
           return res.status(500).json({ message: "Login failed" });
         }
         
-        req.session.userId = profile.userId;
+        req.session.userId = profile.user_id; 
         req.session.save((err) => {
           if (err) {
             console.error("Session save error:", err);
@@ -124,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user
   app.get("/api/auth/me", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUserWithProfile(req.session.userId!);
+      const user = await storage.getUserWithProfile(req.session.userId!); 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -135,17 +130,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ==================== User Management Routes ====================
-  
-  // Get all users (admin only)
+  // ==================== USER MANAGEMENT ROUTES ====================
+
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUserWithProfile(req.session.userId!);
-      if (currentUser?.profile?.role !== "admin") {
+      // Admin check: check for nested profile role
+      const currentUserWithProfile = await storage.getUserWithProfile(req.session.userId!);
+      if (currentUserWithProfile?.profile?.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
 
-      const users = await storage.getAllUsersWithProfiles();
+      const users = await storage.getAllUsersWithProfiles(); 
       res.json(users);
     } catch (error) {
       console.error("Get users error:", error);
@@ -153,14 +148,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete user (admin only)
   app.delete("/api/users/:id", requireAuth, async (req, res) => {
     try {
-      const currentUser = await storage.getUserWithProfile(req.session.userId!);
-      if (currentUser?.profile?.role !== "admin") {
+      // Admin check: check for nested profile role
+      const currentUserWithProfile = await storage.getUserWithProfile(req.session.userId!);
+      if (currentUserWithProfile?.profile?.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
-
+      
       const userId = parseInt(req.params.id);
       await storage.deleteUser(userId);
       res.json({ message: "User deleted successfully" });
@@ -170,9 +165,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ==================== Access Logs Routes ====================
-  
-  // Get recent access logs
+  // ==================== ACCESS LOG ROUTES ====================
+
   app.get("/api/logs", requireAuth, async (req, res) => {
     try {
       const logs = await storage.getRecentAccessLogs(50);
@@ -183,7 +177,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get user-specific logs
   app.get("/api/logs/user/:userId", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
@@ -195,12 +188,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ==================== Stats Routes ====================
-  
-  // Get system statistics
+  // ==================== SYSTEM STATS ====================
+
   app.get("/api/stats", requireAuth, async (req, res) => {
     try {
-      const stats = await storage.getSystemStats();
+      const stats = await storage.getSystemStats(); 
       stats.hardwareConnected = hardwareService.isConnected();
       res.json(stats);
     } catch (error) {
@@ -209,9 +201,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ==================== Hardware Routes ====================
-  
-  // Simulate hardware event (for testing)
+  // ==================== HARDWARE (SIMULATION OPTIONAL) ====================
+
   app.post("/api/hardware/simulate", requireAuth, async (req, res) => {
     try {
       const { userId, result, note } = req.body;
@@ -223,36 +214,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ==================== WebSocket Setup ====================
-  
+  // ==================== WEBSOCKET ====================
+
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
-  // Store connected clients
   const clients = new Set<WebSocket>();
-
   wss.on("connection", (ws) => {
     console.log("WebSocket client connected");
     clients.add(ws);
-
-    // Send hardware status on connection
-    ws.send(JSON.stringify({
-      type: "hardware_status",
-      connected: hardwareService.isConnected(),
-    }));
-
+    
+    ws.send(
+      JSON.stringify({
+        type: "hardware_status",
+        connected: hardwareService.isConnected(),
+      })
+    );
+    
     ws.on("close", () => {
-      console.log("WebSocket client disconnected");
       clients.delete(ws);
     });
-
     ws.on("error", (error) => {
       console.error("WebSocket error:", error);
       clients.delete(ws);
     });
   });
 
-  // Broadcast to all connected clients
   function broadcast(data: any) {
     const message = JSON.stringify(data);
     clients.forEach((client) => {
@@ -261,14 +248,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   }
-
-  // Handle hardware access events
+  
   hardwareService.on("access_event", async (logData) => {
     try {
-      const log = await storage.createAccessLog(logData);
-      const logWithUser = await storage.getRecentAccessLogs(1);
-      
-      // Broadcast to all connected WebSocket clients
+      await storage.createAccessLog(logData);
+      const logWithUser = await storage.getRecentAccessLogs(1); 
       broadcast({
         type: "access_log",
         log: logWithUser[0],
@@ -278,21 +262,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Handle hardware registration events
   hardwareService.on("registration", async (userData) => {
     try {
-      const user = await storage.createUser({
+      await storage.createUser({
         id: userData.userId,
         fingerId: userData.fingerId,
         password: userData.password,
       });
-
       await storage.createAccessLog({
-        userId: user.id,
+        userId: userData.userId,
         result: "REGISTERED",
         note: "New fingerprint registered",
       });
-
       broadcast({
         type: "hardware_status",
         connected: true,
