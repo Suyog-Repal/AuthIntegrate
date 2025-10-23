@@ -11,7 +11,6 @@ import { useEffect, useState } from "react";
 export default function Profile() {
   const { user } = useAuth();
   const [hardwareConnected, setHardwareConnected] = useState(false);
-
   const { data: stats } = useQuery<SystemStats>({
     queryKey: ["/api/stats"],
   });
@@ -30,7 +29,6 @@ export default function Profile() {
           <h1 className="text-3xl font-bold text-foreground">Profile</h1>
           <p className="text-muted-foreground mt-1">Manage your account information</p>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -38,16 +36,28 @@ export default function Profile() {
               <CardDescription>Your profile information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* === Change: Added Full Name display === */}
               <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <User className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-muted-foreground">User ID</p>
+                  <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                  <p className="text-lg font-semibold mt-1">{user?.profile?.name || "N/A"}</p>
+                </div>
+              </div>
+              {/* === Change: Dedicated card for Hardware ID === */}
+              <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <span className="text-primary text-lg font-bold">#</span>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground">Hardware User ID</p>
                   <p className="text-lg font-mono font-semibold mt-1">{user?.id}</p>
                 </div>
               </div>
-
+              {/* =============================================== */}
+              
               <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Fingerprint className="w-5 h-5 text-primary" />
@@ -57,7 +67,6 @@ export default function Profile() {
                   <p className="text-lg font-mono font-semibold mt-1">{user?.fingerId}</p>
                 </div>
               </div>
-
               <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Mail className="w-5 h-5 text-primary" />
@@ -67,7 +76,6 @@ export default function Profile() {
                   <p className="text-lg font-semibold mt-1">{user?.profile?.email}</p>
                 </div>
               </div>
-
               {user?.profile?.mobile && (
                 <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -79,7 +87,6 @@ export default function Profile() {
                   </div>
                 </div>
               )}
-
               <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-primary" />
@@ -93,7 +100,6 @@ export default function Profile() {
               </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Account Status</CardTitle>

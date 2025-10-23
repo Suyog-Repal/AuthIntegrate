@@ -24,6 +24,7 @@ export default function Register() {
     resolver: zodResolver(insertUserProfileSchema),
     defaultValues: {
       userId: 0,
+      name: "", // === Change: Added default value for name ===
       email: "",
       mobile: "",
       password: "",
@@ -33,12 +34,15 @@ export default function Register() {
 
   const onSubmit = async (data: InsertUserProfile & { password: string }) => {
     setIsLoading(true);
+
     try {
       await apiRequest("POST", "/api/auth/register", data);
+
       toast({
         title: "Registration successful!",
         description: "You can now log in with your credentials",
       });
+
       setLocation("/login");
     } catch (error: any) {
       toast({
@@ -85,6 +89,22 @@ export default function Register() {
               </p>
             </div>
 
+            {/* === Change: Added name input field === */}
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                {...register("name")}
+                data-testid="input-name"
+              />
+              {errors.name && (
+                <p className="text-xs text-destructive">{errors.name.message}</p>
+              )}
+            </div>
+            {/* ====================================== */}
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -98,7 +118,6 @@ export default function Register() {
                 <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="mobile">Mobile (Optional)</Label>
               <Input
@@ -112,7 +131,6 @@ export default function Register() {
                 <p className="text-xs text-destructive">{errors.mobile.message}</p>
               )}
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -126,7 +144,6 @@ export default function Register() {
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
             </div>
-
             <Button
               type="submit"
               className="w-full"
@@ -142,7 +159,6 @@ export default function Register() {
                 "Create Account"
               )}
             </Button>
-
             <div className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <button

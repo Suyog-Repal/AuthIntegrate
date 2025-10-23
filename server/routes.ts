@@ -26,24 +26,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // ==================== AUTHENTICATION ROUTES ====================
-
   // Register new user profile
   app.post("/api/auth/register", async (req, res) => {
     try {
       const data = insertUserProfileSchema.parse(req.body);
-      
+
       const user = await storage.getUser(data.userId);
       if (!user) {
         return res.status(400).json({
           message: "User not found in hardware database. Please ensure fingerprint registration first.",
         });
       }
-      
+
       const existingProfile = await storage.getUserProfileByUserId(data.userId);
       if (existingProfile) {
         return res.status(400).json({ message: "Profile already exists for this User ID" });
       }
-      
+
       const existingEmail = await storage.getUserProfileByEmail(data.email);
       if (existingEmail) {
         return res.status(400).json({ message: "Email already in use" });
@@ -57,6 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createUserProfile({
         userId: data.userId,
+        name: data.name, // === Change: Passing new name field ===
         email: data.email,
         mobile: data.mobile,
         passwordHash,
@@ -74,24 +74,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
-      const profile = await storage.getUserProfileByEmail(email); 
-      
+      const profile = await storage.getUserProfileByEmail(email);
+
       if (!profile) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-      
+
       const valid = await bcrypt.compare(password, profile.password_hash);
       if (!valid) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-
       req.session.regenerate((err) => {
         if (err) {
           console.error("Session regeneration error:", err);
           return res.status(500).json({ message: "Login failed" });
         }
-        
-        req.session.userId = profile.user_id; 
+
+        req.session.userId = profile.user_id;
         req.session.save((err) => {
           if (err) {
             console.error("Session save error:", err);
@@ -119,7 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current user
   app.get("/api/auth/me", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUserWithProfile(req.session.userId!); 
+      const user = await storage.getUserWithProfile(req.session.userId!);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -131,7 +130,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==================== USER MANAGEMENT ROUTES ====================
-
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
       // Admin check: check for nested profile role
@@ -139,8 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (currentUserWithProfile?.profile?.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
-
-      const users = await storage.getAllUsersWithProfiles(); 
+      const users = await storage.getAllUsersWithProfiles();
       res.json(users);
     } catch (error) {
       console.error("Get users error:", error);
@@ -155,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (currentUserWithProfile?.profile?.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
-      
+
       const userId = parseInt(req.params.id);
       await storage.deleteUser(userId);
       res.json({ message: "User deleted successfully" });
@@ -166,7 +163,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==================== ACCESS LOG ROUTES ====================
-
   app.get("/api/logs", requireAuth, async (req, res) => {
     try {
       const logs = await storage.getRecentAccessLogs(50);
@@ -189,10 +185,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==================== SYSTEM STATS ====================
-
   app.get("/api/stats", requireAuth, async (req, res) => {
     try {
-      const stats = await storage.getSystemStats(); 
+      const stats = await storage.getSystemStats();
       stats.hardwareConnected = hardwareService.isConnected();
       res.json(stats);
     } catch (error) {
@@ -202,7 +197,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==================== HARDWARE (SIMULATION OPTIONAL) ====================
-
   app.post("/api/hardware/simulate", requireAuth, async (req, res) => {
     try {
       const { userId, result, note } = req.body;
@@ -215,7 +209,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==================== WEBSOCKET ====================
-
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
@@ -223,14 +216,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   wss.on("connection", (ws) => {
     console.log("WebSocket client connected");
     clients.add(ws);
-    
+
     ws.send(
       JSON.stringify({
         type: "hardware_status",
         connected: hardwareService.isConnected(),
       })
     );
-    
+
     ws.on("close", () => {
       clients.delete(ws);
     });
@@ -248,11 +241,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   }
-  
+
   hardwareService.on("access_event", async (logData) => {
     try {
       await storage.createAccessLog(logData);
-      const logWithUser = await storage.getRecentAccessLogs(1); 
+      const logWithUser = await storage.getRecentAccessLogs(1);
       broadcast({
         type: "access_log",
         log: logWithUser[0],

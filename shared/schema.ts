@@ -39,6 +39,9 @@ export const userProfiles = pgTable("user_profiles", {
     .notNull()
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
+  // === Change: Added name field ===
+  name: varchar("name", { length: 255 }).notNull(), 
+  // ===============================
   email: varchar("email", { length: 255 }).notNull().unique(),
   mobile: varchar("mobile", { length: 20 }),
   passwordHash: text("password_hash").notNull(),
@@ -90,6 +93,9 @@ export const insertUserProfileSchema = createInsertSchema(userProfiles)
     passwordHash: true,
   })
   .extend({
+    // === Change: Added name validation ===
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    // =====================================
     password: z.string().min(6, "Password must be at least 6 characters"),
   });
 
@@ -103,13 +109,10 @@ export const loginSchema = z.object({
 // =========================
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-
 export type AccessLog = typeof accessLogs.$inferSelect;
 export type InsertAccessLog = z.infer<typeof insertAccessLogSchema>;
-
 export type UserProfile = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
-
 export type LoginCredentials = z.infer<typeof loginSchema>;
 
 // =========================
@@ -118,11 +121,9 @@ export type LoginCredentials = z.infer<typeof loginSchema>;
 export type UserWithProfile = User & {
   profile: UserProfile | null;
 };
-
 export type AccessLogWithUser = AccessLog & {
   user: User | null;
 };
-
 export type SystemStats = {
   totalUsers: number;
   totalAccessLogs: number;

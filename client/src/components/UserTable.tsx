@@ -67,6 +67,7 @@ export function UserTable({ users, isLoading }: UserTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead className="font-semibold">User ID</TableHead>
+            <TableHead className="font-semibold">Name</TableHead> {/* === Change: Added Name column header === */}
             <TableHead className="font-semibold">Fingerprint ID</TableHead>
             <TableHead className="font-semibold">Email</TableHead>
             <TableHead className="font-semibold">Mobile</TableHead>
@@ -79,6 +80,11 @@ export function UserTable({ users, isLoading }: UserTableProps) {
           {users.map((user) => (
             <TableRow key={user.id} data-testid={`user-row-${user.id}`}>
               <TableCell className="font-mono font-medium">{user.id}</TableCell>
+              {/* === Change: Added Name table cell === */}
+              <TableCell className="font-medium text-foreground">
+                {user.profile?.name || "—"}
+              </TableCell>
+              {/* ===================================== */}
               <TableCell className="font-mono">{user.fingerId}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-2">
