@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import type { AccessLogWithUser } from "@shared/schema";
+import { Shield } from "lucide-react"; // Note: Shield component imported for use in the empty state check below
 
 interface LiveStatusProps {
   logs: AccessLogWithUser[];
@@ -75,10 +76,17 @@ export function LiveStatus({ logs, isConnected }: LiveStatusProps) {
                         </span>
                       </div>
                       <div className="space-y-1">
+                        {/* --- MODIFIED TO SHOW NAME + ID --- */}
                         <div className="flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground">User ID:</span>
-                          <span className="font-mono font-medium">{log.userId || "Unknown"}</span>
+                          <span className="text-muted-foreground">User:</span>
+                          <span className="font-medium text-foreground">
+                            {log.userName || "Unknown"}
+                            <span className="font-mono text-muted-foreground/70 text-xs ml-2">
+                              (ID: {log.userId || "—"})
+                            </span>
+                          </span>
                         </div>
+                        {/* ---------------------------------- */}
                         {log.note && (
                           <p className="text-sm text-muted-foreground">{log.note}</p>
                         )}
@@ -95,4 +103,5 @@ export function LiveStatus({ logs, isConnected }: LiveStatusProps) {
   );
 }
 
-import { Shield } from "lucide-react";
+// NOTE: The original file had the Shield import at the end, I've moved it to the top.
+// The file is fully self-contained.
