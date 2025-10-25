@@ -1,13 +1,24 @@
+// client\src\components\LiveStatus.tsx
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
+import { Shield } from "lucide-react"; // Import Shield icon
 import type { AccessLogWithUser } from "@shared/schema";
-import { Shield } from "lucide-react"; // Note: Shield component imported for use in the empty state check below
+
+// NOTE: The AccessLogWithUser type is implicitly updated via shared/schema.ts
+// The log object now contains: { ..., email, mobile, name, ... }
+
+// Extend AccessLogWithUser to explicitly include the joined profile fields for certainty
+interface CustomAccessLog extends AccessLogWithUser {
+  email?: string;
+  mobile?: string;
+  name?: string; // Explicitly define the name field
+}
 
 interface LiveStatusProps {
-  logs: AccessLogWithUser[];
+  logs: CustomAccessLog[];
   isConnected: boolean;
 }
 
@@ -34,13 +45,13 @@ export function LiveStatus({ logs, isConnected }: LiveStatusProps) {
             <CardDescription>Real-time hardware authentication events</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <div
+            <div   
               className={`w-2 h-2 rounded-full ${
                 isConnected ? "bg-success animate-pulse" : "bg-destructive"
               }`}
             />
             <span className="text-xs text-muted-foreground">
-              {isConnected ? "Live" : "Offline"}
+              {isConnected ? "Live" : "Offline"}       
             </span>
           </div>
         </div>
@@ -55,38 +66,40 @@ export function LiveStatus({ logs, isConnected }: LiveStatusProps) {
                 Events will appear here in real-time
               </p>
             </div>
-          ) : (
+          ) : (        
             <div className="space-y-3">
               {logs.map((log) => (
                 <div
                   key={log.id}
                   className={`p-4 rounded-lg border bg-card transition-all ${
-                    animateNew.includes(log.id)
+                    animateNew.includes(log.id)  
                       ? "ring-2 ring-primary animate-in fade-in slide-in-from-top-2"
                       : ""
                   }`}
                   data-testid={`access-log-${log.id}`}
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start 
+justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3">
                         <StatusBadge status={log.result} />
-                        <span className="text-xs text-muted-foreground font-mono">
+                        <span className="text-xs 
+text-muted-foreground font-mono">
                           {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
                         </span>
                       </div>
+                      
                       <div className="space-y-1">
-                        {/* --- MODIFIED TO SHOW NAME + ID --- */}
+                        {/* CRITICAL FIX: Display the user name if available, otherwise show "Unknown" */}
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-muted-foreground">User:</span>
-                          <span className="font-medium text-foreground">
-                            {log.userName || "Unknown"}
-                            <span className="font-mono text-muted-foreground/70 text-xs ml-2">
-                              (ID: {log.userId || "—"})
-                            </span>
+                          <span className="font-medium">
+                            {log.name || "Unknown"}
+                          </span>
+                          <span className="text-muted-foreground font-mono">
+                            (ID: {log.userId || "—"})
                           </span>
                         </div>
-                        {/* ---------------------------------- */}
                         {log.note && (
                           <p className="text-sm text-muted-foreground">{log.note}</p>
                         )}
@@ -102,6 +115,3 @@ export function LiveStatus({ logs, isConnected }: LiveStatusProps) {
     </Card>
   );
 }
-
-// NOTE: The original file had the Shield import at the end, I've moved it to the top.
-// The file is fully self-contained.

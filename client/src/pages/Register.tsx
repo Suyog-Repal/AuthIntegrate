@@ -1,3 +1,4 @@
+// client\src\pages\Register.tsx
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserProfileSchema, type InsertUserProfile } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { z } from "zod"; 
+
+// Define a safe, extended schema for the form validation
+const registerFormSchema = insertUserProfileSchema.extend({
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    name: z.string().min(2, "Name must be at least 2 characters"),
+});
+type RegisterFormFields = z.infer<typeof registerFormSchema>;
+
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -20,11 +30,11 @@ export default function Register() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<InsertUserProfile & { password: string }>({
-    resolver: zodResolver(insertUserProfileSchema),
+  } = useForm<RegisterFormFields>({
+    resolver: zodResolver(registerFormSchema), 
     defaultValues: {
       userId: 0,
-      name: "", // === Change: Added default value for name ===
+      name: "", 
       email: "",
       mobile: "",
       password: "",
@@ -32,7 +42,7 @@ export default function Register() {
     },
   });
 
-  const onSubmit = async (data: InsertUserProfile & { password: string }) => {
+  const onSubmit = async (data: RegisterFormFields) => {
     setIsLoading(true);
 
     try {
@@ -89,7 +99,7 @@ export default function Register() {
               </p>
             </div>
 
-            {/* === Change: Added name input field === */}
+            {/* NAME FIELD */}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -98,13 +108,13 @@ export default function Register() {
                 placeholder="John Doe"
                 {...register("name")}
                 data-testid="input-name"
+                required 
               />
               {errors.name && (
                 <p className="text-xs text-destructive">{errors.name.message}</p>
               )}
             </div>
-            {/* ====================================== */}
-
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -113,6 +123,7 @@ export default function Register() {
                 placeholder="your.email@example.com"
                 {...register("email")}
                 data-testid="input-email"
+                required
               />
               {errors.email && (
                 <p className="text-xs text-destructive">{errors.email.message}</p>
@@ -139,6 +150,7 @@ export default function Register() {
                 placeholder="Create a strong password"
                 {...register("password")}
                 data-testid="input-password"
+                required
               />
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password.message}</p>
@@ -160,7 +172,7 @@ export default function Register() {
               )}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
+              Already have an account? {" "}
               <button
                 type="button"
                 onClick={() => setLocation("/login")}
