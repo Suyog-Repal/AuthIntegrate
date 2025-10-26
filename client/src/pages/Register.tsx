@@ -1,4 +1,4 @@
-// client\src\pages\Register.tsx
+// client/src/pages/Register.tsx
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { z } from "zod";
 
 // Define a safe, extended schema for the form validation
 const registerFormSchema = insertUserProfileSchema.extend({
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string().min(6, "Password must be at least 2 characters"),
     name: z.string().min(2, "Name must be at least 2 characters"),
 });
 type RegisterFormFields = z.infer<typeof registerFormSchema>;

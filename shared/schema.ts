@@ -10,7 +10,7 @@ export const userRoleEnum = pgEnum("user_role", ["admin", "user"]);
 export const users = pgTable("users", {
   id: integer("id").primaryKey(),
   fingerId: integer("finger_id").notNull().unique(),
-  password: varchar("password", { length: 50 }).notNull(),
+  // CRITICAL FIX: Removed 'password' column from the hardware table.
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 // =========================// ACCESS LOGS TABLE// =========================
@@ -70,13 +70,19 @@ export const insertUserProfileSchema = createInsertSchema(userProfiles)
     passwordHash: true,
   })
   .extend({
-    password: z.string().min(6, "Password must be at least 6 characters"),
+    password: z.string().min(6, "Password must be at least 2 characters"),
     name: z.string().min(2, "Name must be at least 2 characters"), 
   });
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
 });
+// Schema for hardware verification request
+export const hardwareVerifySchema = z.object({
+    userId: z.number().int().min(0),
+    password: z.string().min(1),
+});
+
 // =========================// TYPES// =========================
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;

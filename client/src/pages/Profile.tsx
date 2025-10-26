@@ -1,3 +1,4 @@
+// client/src/pages/Profile.tsx
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,19 +11,20 @@ import { useEffect, useState } from "react";
 
 export default function Profile() {
   const { user } = useAuth();
-  const [hardwareConnected, setHardwareConnected] = useState(false);
+  
+  // CRITICAL FIX: Profile page must fetch stats to display hardware connection status
   const { data: stats } = useQuery<SystemStats>({
     queryKey: ["/api/stats"],
+    // Ensure it refreshes connection status
+    refetchInterval: 5000, 
   });
-
-  useEffect(() => {
-    if (stats) {
-      setHardwareConnected(stats.hardwareConnected);
-    }
-  }, [stats]);
+  
+  // Use the data returned by the query to determine connection status
+  const hardwareConnected = stats?.hardwareConnected ?? false;
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header now correctly receives the status */}
       <Header hardwareConnected={hardwareConnected} />
       <main className="container mx-auto px-4 py-8 space-y-8">
         <div>
@@ -36,7 +38,6 @@ export default function Profile() {
               <CardDescription>Your profile information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* === Change: Added Full Name display === */}
               <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <User className="w-5 h-5 text-primary" />
@@ -46,18 +47,15 @@ export default function Profile() {
                   <p className="text-lg font-semibold mt-1">{user?.profile?.name || "N/A"}</p>
                 </div>
               </div>
-              {/* === Change: Dedicated card for Hardware ID === */}
               <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <span className="text-primary text-lg font-bold">#</span>
+                  <Fingerprint className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-muted-foreground">Hardware User ID</p>
                   <p className="text-lg font-mono font-semibold mt-1">{user?.id}</p>
                 </div>
               </div>
-              {/* =============================================== */}
-              
               <div className="flex items-start gap-4 p-4 rounded-lg bg-muted/50">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Fingerprint className="w-5 h-5 text-primary" />

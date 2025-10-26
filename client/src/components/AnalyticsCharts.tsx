@@ -1,17 +1,18 @@
+// client\src\components\AnalyticsCharts.tsx
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
+import { 
+  LineChart, 
+  Line, 
+  BarChart, 
+  Bar, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
   ResponsiveContainer,
 } from "recharts";
 import type { AccessLogWithUser } from "@shared/schema";
@@ -35,7 +36,7 @@ export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
       registered: dayLogs.filter((l) => l.result === "REGISTERED").length,
     };
   });
-
+  
   // Prepare data for status distribution
   const statusData = [
     {
@@ -76,7 +77,7 @@ export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
                 }}
               />
               <Legend />
-              <Line
+              <Line 
                 type="monotone"
                 dataKey="granted"
                 stroke="hsl(142 76% 45%)"
@@ -101,7 +102,6 @@ export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
           </ResponsiveContainer>
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Access Status Distribution</CardTitle>
@@ -135,7 +135,6 @@ export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
           </ResponsiveContainer>
         </CardContent>
       </Card>
-
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>Daily Access Rate</CardTitle>

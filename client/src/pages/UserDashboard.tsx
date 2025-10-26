@@ -1,3 +1,4 @@
+// client\src\pages\UserDashboard.tsx
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +9,9 @@ import { Activity, Clock, CheckCircle, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function UserDashboard() {
-  const { user } = useAuth();
-  const [hardwareConnected, setHardwareConnected] = useState(false);
+  const { user, isAuthenticated } = useAuth(); 
 
+  const [hardwareConnected, setHardwareConnected] = useState(false);
   const { data: stats } = useQuery<SystemStats>({
     queryKey: ["/api/stats"],
     refetchInterval: 5000,
@@ -18,7 +19,15 @@ export default function UserDashboard() {
 
   const { data: logs = [], isLoading: logsLoading } = useQuery<AccessLogWithUser[]>({
     queryKey: ["/api/logs/user", user?.id],
-    enabled: !!user,
+    
+    // FINAL FIX: Override global staleTime to ensure logs are ALWAYS considered stale,
+    // guaranteeing a fetch when the component mounts or gets focus.
+    staleTime: 0, 
+    refetchOnMount: true, 
+    refetchOnWindowFocus: true,
+    
+    // Query is strictly enabled only if user is authenticated AND has a defined ID.
+    enabled: isAuthenticated && user?.id !== undefined && user?.id !== null,
   });
 
   useEffect(() => {
@@ -27,10 +36,11 @@ export default function UserDashboard() {
     }
   }, [stats]);
 
-  const userLogs = logs.filter((log) => log.userId === user?.id);
+  const userLogs = logs; 
+
   const grantedCount = userLogs.filter((log) => log.result === "GRANTED").length;
   const deniedCount = userLogs.filter((log) => log.result === "DENIED").length;
-
+  
   return (
     <div className="min-h-screen bg-background">
       <Header hardwareConnected={hardwareConnected} />
@@ -41,7 +51,6 @@ export default function UserDashboard() {
             View your access history and account details
           </p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card data-testid="stat-card-total">
             <CardContent className="p-6">
@@ -56,7 +65,6 @@ export default function UserDashboard() {
               </div>
             </CardContent>
           </Card>
-
           <Card data-testid="stat-card-granted">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -70,7 +78,6 @@ export default function UserDashboard() {
               </div>
             </CardContent>
           </Card>
-
           <Card data-testid="stat-card-denied">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
@@ -85,7 +92,6 @@ export default function UserDashboard() {
             </CardContent>
           </Card>
         </div>
-
         <Card>
           <CardHeader>
             <CardTitle>My Access History</CardTitle>

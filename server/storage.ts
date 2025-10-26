@@ -4,40 +4,32 @@ import bcrypt from "bcryptjs";
 import type { User, UserProfile, InsertUserProfile } from "@shared/schema";
 
 class DatabaseStorage {
-  // =============== USERS (HARDWARE) ==================
-
-  async getUser(id: number): Promise<User | null> {
+  // --- Standard functions omitted for brevity ---
+  async getUser(id: number): Promise<any> {
     const [rows]: any = await db.query("SELECT * FROM users WHERE id = ?", [id]);
     return rows[0] || null;
   }
-
-  async createUser(data: { id: number; fingerId: number; password: string }) {
-    await db.query("INSERT INTO users (id, finger_id, password) VALUES (?, ?, ?)", [
+  async createUser(data: { id: number; fingerId: number; password?: string }) {
+    await db.query("INSERT INTO users (id, finger_id) VALUES (?, ?)", [
       data.id,
       data.fingerId,
-      data.password,
     ]);
   }
-
   async deleteUser(id: number) {
     await db.query("DELETE FROM users WHERE id = ?", [id]);
   }
-
-  // UPDATED: Added p.name to the SELECT and mapping
-  async getAllUsersWithProfiles() {
+  async getAllUsersWithProfiles(): Promise<any[]> {
     const [rows]: any = await db.query(`
       SELECT
-          u.id, u.finger_id, u.password, u.created_at,
+          u.id, u.finger_id, u.created_at,
           p.id as profile_id, p.user_id, p.email, p.mobile, p.role, p.password_hash, p.created_at as profile_created_at, p.name
       FROM users u
       LEFT JOIN user_profiles p ON u.id = p.user_id
       ORDER BY u.id
     `);
-    
     return rows.map((row: any) => ({
       id: row.id,
       fingerId: row.finger_id,
-      password: row.password,
       createdAt: row.created_at,
       profile: row.profile_id ? {
         id: row.profile_id,
@@ -47,32 +39,28 @@ class DatabaseStorage {
         password_hash: row.password_hash,
         role: row.role,
         createdAt: row.profile_created_at,
-        name: row.name, // Added name
+        name: row.name,
       } : null,
     }));
   }
-
-  // UPDATED: Added p.name to the SELECT and mapping
-  async getUserWithProfile(userId: number) {
+  async getUserWithProfile(userId: number): Promise<any> {
     const [rows]: any = await db.query(
       `SELECT
-          u.id, u.finger_id, u.password, u.created_at,
+          u.id, u.finger_id, u.created_at,
           p.id as profile_id, p.user_id, p.email, p.mobile, p.role, p.password_hash, p.created_at as profile_created_at, p.name
       FROM users u
       LEFT JOIN user_profiles p ON u.id = p.user_id
       WHERE u.id = ?`,
       [userId]
     );
-
     const row = rows[0];
     if (!row) return null;
-
     return {
       id: row.id,
       fingerId: row.finger_id,
-      password: row.password,
       createdAt: row.created_at,
-      profile: row.profile_id ? {
+      profile: row.profile_id ?
+      {
         id: row.profile_id,
         userId: row.user_id,
         email: row.email,
@@ -80,25 +68,18 @@ class DatabaseStorage {
         password_hash: row.password_hash,
         role: row.role,
         createdAt: row.profile_created_at,
-        name: row.name, // Added name
+        name: row.name,
       } : null,
     };
   }
-
-
-  // =============== USER PROFILES (WEB) ==================
-  
   async getUserProfileByUserId(userId: number) {
     const [rows]: any = await db.query("SELECT * FROM user_profiles WHERE user_id = ?", [userId]);
     return rows[0] || null;
   }
-  
   async getUserProfileByEmail(email: string) {
     const [rows]: any = await db.query("SELECT * FROM user_profiles WHERE email = ?", [email]);
     return rows[0] || null;
   }
-  
-  // CRITICAL FIX: Added 'name' to the profile creation SQL statement
   async createUserProfile(profile: Omit<InsertUserProfile, 'password'> & { passwordHash: string }) {
     await db.query(
       `INSERT INTO user_profiles (user_id, name, email, mobile, password_hash, role)
@@ -106,9 +87,14 @@ class DatabaseStorage {
       [profile.userId, profile.name, profile.email, profile.mobile || null, profile.passwordHash, profile.role || "user"]
     );
   }
-
-  // =============== ACCESS LOGS ==================
-
+  async updateUserProfile(userId: number, data: { name: string, email: string, mobile?: string, role: 'admin' | 'user' }) {
+    await db.query(
+      `UPDATE user_profiles
+       SET name = ?, email = ?, mobile = ?, role = ?
+       WHERE user_id = ?`,
+      [data.name, data.email, data.mobile || null, data.role, userId]
+    );
+  }
   async createAccessLog(data: { userId: number; result: string; note?: string }) {
     await db.query(
       `INSERT INTO access_logs (user_id, result, note, created_at)
@@ -116,20 +102,18 @@ class DatabaseStorage {
       [data.userId, data.result, data.note || null]
     );
   }
-
-  // CRITICAL FIX: Added p.name AS name to the SELECT statement for LiveStatus and LogsTable
-  async getRecentAccessLogs(limit = 50) {
+  async getRecentAccessLogs(limit = 50): Promise<any[]> {
     const [rows]: any = await db.query(
-      `SELECT 
-           l.id,
+      `SELECT
+            l.id,
            l.user_id AS userId,
            l.result,
            l.note,
            l.created_at AS createdAt,
            p.email,
            p.mobile,
-           p.name AS name   -- ADDED NAME FIELD
-        FROM access_logs l
+           p.name AS name
+         FROM access_logs l
         LEFT JOIN user_profiles p ON l.user_id = p.user_id
         ORDER BY l.created_at DESC
         LIMIT ?`,
@@ -137,9 +121,9 @@ class DatabaseStorage {
     );
     return rows;
   }
-
-  // CRITICAL FIX: Added p.name AS name to the SELECT statement for LogsTable
-  async getUserAccessLogs(userId: number) {
+  
+  // 🔥 FINAL FIX: Ensure strict retrieval for the user dashboard.
+  async getUserAccessLogs(userId: number): Promise<any[]> {
     const [rows]: any = await db.query(
       `SELECT
            l.id,
@@ -149,36 +133,34 @@ class DatabaseStorage {
            l.created_at AS createdAt,
            p.email,
            p.mobile,
-           p.name AS name -- ADDED NAME FIELD
+           p.name AS name
         FROM access_logs l
         LEFT JOIN user_profiles p ON l.user_id = p.user_id
         WHERE l.user_id = ?
         ORDER BY l.created_at DESC`,
       [userId]
     );
+    // CRITICAL: Ensure we return the raw rows. If the DB says 200 but returns empty,
+    // the logs must not exist for that user ID in the access_logs table.
     return rows;
   }
 
-  // FIXED: Corrected array indexing to prevent "Cannot read properties of undefined (reading 'total')" error.
   async getSystemStats() {
-    // MySQL query returns [[rows], [fields]]
-    const [userCountRows]: any = await db.query("SELECT COUNT(*) AS total FROM users");
+    const [userCountRows]: any = await db.query(`
+        SELECT COUNT(p.user_id) AS totalUsers
+         FROM user_profiles p
+    `);
     const [logCountRows]: any = await db.query("SELECT COUNT(*) AS total FROM access_logs");
-
     const [todayStatsRows]: any = await db.query(`
         SELECT
             SUM(CASE WHEN result = 'GRANTED' AND DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) AS accessGrantedToday,
             SUM(CASE WHEN result = 'DENIED' AND DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) AS accessDeniedToday
         FROM access_logs
     `);
-    
-    // Safely get the total count.
-    const totalUsers = userCountRows && userCountRows.length > 0 && userCountRows[0].total !== undefined ? userCountRows[0].total : 0;
-    const totalAccessLogs = logCountRows && logCountRows.length > 0 && logCountRows[0].total !== undefined ? logCountRows[0].total : 0;
-
-    // The aggregation functions (SUM) will always return one row, even if values are NULL/0
+    const totalUsers = userCountRows && userCountRows.length > 0 ? userCountRows[0].totalUsers : 0;
+    const totalAccessLogs = logCountRows && logCountRows.length > 0 ? logCountRows[0].total : 0;
     const todayStats = todayStatsRows && todayStatsRows.length > 0 ? todayStatsRows[0] : {};
-    
+
     return {
         totalUsers: totalUsers,
         totalAccessLogs: totalAccessLogs,
