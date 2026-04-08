@@ -46,7 +46,7 @@ export default function Register() {
     setIsLoading(true);
 
     try {
-      await apiRequest("POST", "/api/auth/register", data);
+      await apiRequest("POST", "auth/register", data);
 
       toast({
         title: "Registration successful!",

@@ -31,10 +31,10 @@ export function UserTable({ users, isLoading }: UserTableProps) {
 
   const deleteMutation = useMutation({
     mutationFn: async (userId: number) => {
-      return apiRequest("DELETE", `/api/users/${userId}`);
+      return apiRequest("DELETE", `users/${userId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast({
         title: "User deleted",
         description: "User has been removed successfully",

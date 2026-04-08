@@ -46,18 +46,18 @@ export default function AdminDashboard() {
   
   // Fetch queries
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery<SystemStats>({
-    queryKey: ["/api/stats"],
+    queryKey: ["stats"],
     refetchInterval: 5000,
     enabled: isAdmin,
    });
 
   const { data: users = [], isLoading: usersLoading, refetch: refetchUsers } = useQuery<UserWithProfile[]>({
-    queryKey: ["/api/users"],
+    queryKey: ["users"],
     enabled: isAdmin,
   });
 
   const { data: logs = [], refetch: refetchLogs } = useQuery<AccessLogWithUser[]>({
-    queryKey: ["/api/logs"],
+    queryKey: ["logs"],
     refetchInterval: 3000,
     enabled: isAdmin,
   });

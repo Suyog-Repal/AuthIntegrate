@@ -2,8 +2,11 @@
 import express, { type Request, Response, NextFunction } from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
+
+dotenv.config();
 
 const app = express();
 
@@ -61,9 +64,7 @@ app.use((req, res, next) => {
   } else {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    const clientPath = process.env.DIST_DIR
-      ? path.resolve(process.env.DIST_DIR)
-      : path.resolve(__dirname, "public");
+    const clientPath = path.resolve(__dirname, process.env.DIST_DIR || "../dist/public");
 
     app.use(express.static(clientPath));
     app.use("*", (_req, res) => {

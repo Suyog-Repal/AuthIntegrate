@@ -18,7 +18,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   const { data: user, isLoading, refetch } = useQuery<UserWithProfile>({
-    queryKey: ["/api/auth/me"],
+    queryKey: ["auth/me"],
     enabled: isInitialized,
     retry: false,
   });
@@ -29,13 +29,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      return apiRequest("POST", "/api/auth/login", { email, password });
+      return apiRequest("POST", "auth/login", { email, password });
     },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/auth/logout");
+      return apiRequest("POST", "auth/logout");
     },
     onSuccess: () => {
       queryClient.clear();
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     await loginMutation.mutateAsync({ email, password });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    queryClient.invalidateQueries({ queryKey: ["auth/me"] });
     const result = await refetch();
     return result.data;
   };
