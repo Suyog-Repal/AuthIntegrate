@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatDistanceToNow } from "date-fns";
 import { Shield } from "lucide-react";
+import { useRelativeTimeIST } from "@/hooks/use-relative-time";
 
 // Import Shield icon
 import type { AccessLogWithUser } from "@shared/schema";
@@ -20,6 +20,12 @@ interface CustomAccessLog extends AccessLogWithUser {
 interface LiveStatusProps {
   logs: CustomAccessLog[];
   isConnected: boolean;
+}
+
+// Component to render relative time with auto-updates
+function RelativeTimeDisplay({ timestamp }: { timestamp: string | Date }) {
+  const relativeTime = useRelativeTimeIST(timestamp);
+  return <span className="text-xs text-muted-foreground font-mono">{relativeTime}</span>;
 }
 
 export function LiveStatus({ logs, isConnected }: LiveStatusProps) {
@@ -83,10 +89,7 @@ justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3">
                         <StatusBadge status={log.result} />
-                        <span className="text-xs
-text-muted-foreground font-mono">
-                          {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
-                        </span>
+                        <RelativeTimeDisplay timestamp={log.createdAt} />
                       </div>
                       
                       <div className="space-y-1">

@@ -36,7 +36,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  const httpServer = await registerRoutes(app);
 
   // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -55,15 +55,67 @@ app.use((req, res, next) => {
 
   // Setup Vite in development
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    await setupVite(app, httpServer);
   } else {
     serveStatic(app);
   }
 
-  const port = parseInt(process.env.PORT || "5000", 10);
-  
-  // CRITICAL FIX: Listen on 0.0.0.0 to accept external Wi-Fi connections
-  server.listen(port, "0.0.0.0", () => {
-    log(`✅ Server running and accessible via network at ${process.env.DB_HOST}:${port} or 0.0.0.0:${port}`);
+  const basePort = parseInt(process.env.PORT || "5000", 10);
+  let currentPort = basePort;
+  let attempts = 0;
+  const maxAttempts = 5;
+
+  /**
+   * Attempts to start the server with exponential backoff retry
+   */
+  function startServer(port: number): void {
+    log(`🔄 Attempting to start server on port ${port}...`);
+    
+    // CRITICAL: Attach error handler BEFORE listening to avoid race conditions
+    httpServer.once("error", (err: any) => {
+      if (err.code === "EADDRINUSE") {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          log(`❌ Failed to start server after ${maxAttempts} attempts. Port ${port} is permanently in use.`);
+          log(`💡 Kill lingering processes: killall node 2>/dev/null || taskkill /F /IM node.exe`);
+          process.exit(1);
+        }
+
+        log(`⚠️  Port ${port} is in use (attempt ${attempts}/${maxAttempts}). Trying port ${port + 1}...`);
+        
+        // Close existing listeners and retry on next port
+        currentPort++;
+        httpServer.removeAllListeners("error");
+        setTimeout(() => {
+          startServer(currentPort);
+        }, 500 + (100 * attempts)); // Exponential backoff
+      } else {
+        log(`❌ Server error: ${err.message}`);
+        process.exit(1);
+      }
+    });
+
+    // NOW call listen after error handler is attached
+    httpServer.listen(port, "0.0.0.0", () => {
+      log(`✅ Server running and accessible via network at ${process.env.DB_HOST}:${port} or 0.0.0.0:${port}`);
+    });
+  }
+
+  // Start the server
+  startServer(currentPort);
+
+  // Graceful shutdown
+  process.on("SIGINT", () => {
+    log("🛑 Shutting down gracefully...");
+    httpServer.close(() => {
+      log("✅ Server shut down successfully");
+      process.exit(0);
+    });
+
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+      log("❌ Forced shutdown (timeout)");
+      process.exit(1);
+    }, 10000);
   });
 })();

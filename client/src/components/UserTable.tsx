@@ -12,12 +12,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Mail, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
+import { useRelativeTimeIST } from "@/hooks/use-relative-time";
 import type { UserWithProfile } from "@shared/schema";
 
 interface UserTableProps {
   users: UserWithProfile[];
   isLoading: boolean;
+}
+
+// Component to render relative time with auto-updates for user creation time
+function RelativeTimeDisplay({ timestamp }: { timestamp: string | Date }) {
+  const relativeTime = useRelativeTimeIST(timestamp);
+  return <span className="text-sm text-muted-foreground">{relativeTime}</span>;
 }
 
 export function UserTable({ users, isLoading }: UserTableProps) {
@@ -111,7 +117,7 @@ export function UserTable({ users, isLoading }: UserTableProps) {
                 </Badge>
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
+                <RelativeTimeDisplay timestamp={user.createdAt} />
               </TableCell>
               <TableCell className="text-right">
                 <Button

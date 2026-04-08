@@ -286,6 +286,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
+  // Add error handler to WebSocketServer to prevent unhandled errors
+  wss.on("error", (error: any) => {
+    console.error("WebSocketServer error:", error);
+  });
+
   const clients = new Set<WebSocket>();
   wss.on("connection", (ws) => {
     console.log("WebSocket client connected");

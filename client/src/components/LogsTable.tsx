@@ -7,7 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
-import { format } from "date-fns";
+import { formatAbsoluteTimeIST } from "@/lib/utils";
 import type { AccessLogWithUser } from "@shared/schema";
 
 interface LogsTableProps {
@@ -58,7 +58,7 @@ export function LogsTable({ logs, isLoading }: LogsTableProps) {
                 {log.note || "—"}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {format(new Date(log.createdAt), "MMM dd, yyyy HH:mm:ss")}
+                {formatAbsoluteTimeIST(log.createdAt)}
               </TableCell>
             </TableRow>
           ))}

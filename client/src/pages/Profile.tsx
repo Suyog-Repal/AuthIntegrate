@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Phone, Fingerprint, Calendar } from "lucide-react";
-import { format } from "date-fns";
+import { formatAbsoluteTimeIST } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import type { SystemStats } from "@shared/schema";
 import { useEffect, useState } from "react";
@@ -92,7 +92,7 @@ export default function Profile() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-muted-foreground">Member Since</p>
                   <p className="text-lg font-semibold mt-1">
-                    {user?.createdAt && format(new Date(user.createdAt), "MMMM dd, yyyy")}
+                    {user?.createdAt && formatAbsoluteTimeIST(user.createdAt)}
                   </p>
                 </div>
               </div>

@@ -13,7 +13,7 @@ import { loginSchema, type LoginCredentials } from "@shared/schema";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { login, isAdmin } = useAuth();
+  const { login } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,12 +32,12 @@ export default function Login() {
   const onSubmit = async (data: LoginCredentials) => {
     setIsLoading(true);
     try {
-      await login(data.email, data.password);
+      const user = await login(data.email, data.password);
       toast({
         title: "Welcome back!",
         description: "Login successful",
       });
-      setLocation(isAdmin ? "/dashboard/admin" : "/dashboard/user");
+      setLocation(user?.profile?.role === "admin" ? "/dashboard/admin" : "/dashboard/user");
     } catch (error: any) {
       toast({
         title: "Login failed",
