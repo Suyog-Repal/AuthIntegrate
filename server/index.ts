@@ -1,7 +1,9 @@
 // server/index.ts
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, log } from "./vite";
 
 const app = express();
 
@@ -57,7 +59,16 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, httpServer);
   } else {
-    serveStatic(app);
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const clientPath = process.env.DIST_DIR
+      ? path.resolve(process.env.DIST_DIR)
+      : path.resolve(__dirname, "public");
+
+    app.use(express.static(clientPath));
+    app.use("*", (_req, res) => {
+      res.sendFile(path.resolve(clientPath, "index.html"));
+    });
   }
 
   const basePort = parseInt(process.env.PORT || "5000", 10);
