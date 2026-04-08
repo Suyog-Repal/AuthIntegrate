@@ -63,7 +63,7 @@ app.use((req, res, next) => {
     const __dirname = path.dirname(__filename);
     const clientPath = process.env.DIST_DIR
       ? path.resolve(process.env.DIST_DIR)
-      : path.resolve(__dirname, "public");
+      : path.resolve(process.cwd(), "dist", "public");
 
     app.use(express.static(clientPath));
     app.use("*", (_req, res) => {
