@@ -23,7 +23,7 @@ export async function apiRequest(
     url,
     data,
   });
-  return response;
+  return response.data;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

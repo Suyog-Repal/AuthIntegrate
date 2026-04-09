@@ -32,18 +32,32 @@ export default function Login() {
   const onSubmit = async (data: LoginCredentials) => {
     setIsLoading(true);
     try {
+      // Authenticate user and get their profile
       const user = await login(data.email, data.password);
+      
+      // Verify user profile exists and has role
+      if (!user || !user.profile) {
+        throw new Error("Failed to retrieve user profile");
+      }
+      
+      // Show success toast
       toast({
         title: "Welcome back!",
         description: "Login successful",
       });
-      setLocation(user?.profile?.role === "admin" ? "/dashboard/admin" : "/dashboard/user");
+      
+      // Redirect to appropriate dashboard based on role
+      const redirectPath = user.profile.role === "admin" ? "/dashboard/admin" : "/dashboard/user";
+      setLocation(redirectPath);
     } catch (error: any) {
+      // Show error toast with specific message
+      const errorMessage = error?.response?.data?.message || error?.message || "Invalid email or password";
       toast({
         title: "Login failed",
-        description: error.message || "Invalid email or password",
+        description: errorMessage,
         variant: "destructive",
       });
+      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }

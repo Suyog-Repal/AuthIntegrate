@@ -20,7 +20,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: user, isLoading, refetch } = useQuery<UserWithProfile>({
     queryKey: ["auth/me"],
     enabled: isInitialized,
-    retry: false,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   useEffect(() => {
@@ -43,11 +44,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   const login = async (email: string, password: string) => {
-    await loginMutation.mutateAsync({ email, password });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    queryClient.invalidateQueries({ queryKey: ["auth/me"] });
-    const result = await refetch();
-    return result.data;
+    try {
+      // Step 1: Send login credentials to server
+      await loginMutation.mutateAsync({ email, password });
+      
+      // Step 2: Invalidate the auth/me query to force a fresh fetch
+      queryClient.invalidateQueries({ queryKey: ["auth/me"] });
+      
+      // Step 3: Refetch the updated user profile with new session
+      const result = await refetch();
+      
+      // Step 4: Verify the user data was successfully retrieved
+      if (result.isError || !result.data) {
+        const errorMessage = result.error instanceof Error ? result.error.message : "Failed to fetch user profile after login";
+        throw new Error(errorMessage || "Authentication failed. Please try again.");
+      }
+      
+      return result.data;
+    } catch (error: any) {
+      // Clear any partial auth state on error
+      queryClient.removeQueries({ queryKey: ["auth/me"] });
+      throw error;
+    }
   };
 
   const logout = async () => {
