@@ -64,11 +64,20 @@ app.use((req, res, next) => {
   } else {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    const clientPath = path.resolve(__dirname, process.env.DIST_DIR || "../dist/public");
+    const publicPath = path.join(__dirname, "public");
 
-    app.use(express.static(clientPath));
-    app.use("*", (_req, res) => {
-      res.sendFile(path.resolve(clientPath, "index.html"));
+    log(`📁 Serving static files from: ${publicPath}`);
+
+    app.use(express.static(publicPath));
+
+    app.get("*", (_req, res) => {
+      const indexPath = path.join(publicPath, "index.html");
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          log(`⚠️  Could not send index.html from ${indexPath}`);
+          res.status(500).json({ message: "Client build files not found. Please run build." });
+        }
+      });
     });
   }
 
