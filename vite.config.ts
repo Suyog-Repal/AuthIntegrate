@@ -8,6 +8,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
+  // ✅ CRITICAL: Set base path for production asset loading
+  base: "/",
+  
   plugins: [
     react(),
     runtimeErrorOverlay(),
@@ -34,6 +37,11 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    // ✅ Ensure proper source maps and manifest
+    sourcemap: false,
+    // ✅ Optimize for production
+    minify: "terser",
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     fs: {

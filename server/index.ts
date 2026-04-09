@@ -67,15 +67,41 @@ app.use((req, res, next) => {
     const publicPath = path.join(__dirname, "public");
 
     log(`📁 Serving static files from: ${publicPath}`);
+    log(`📁 Full static path: ${publicPath}`);
 
-    app.use(express.static(publicPath));
+    // ✅ CRITICAL: Serve static files with proper caching
+    app.use(express.static(publicPath, {
+      maxAge: "1d",
+      etag: false,
+      // ✅ Serve .js and .css with proper content types
+      setHeaders: (res, path, stat) => {
+        if (path.endsWith(".js")) {
+          res.setHeader("Content-Type", "application/javascript");
+        } else if (path.endsWith(".css")) {
+          res.setHeader("Content-Type", "text/css");
+        }
+        // Don't cache HTML files - let browser check for updates
+        if (path.endsWith(".html")) {
+          res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+        }
+      },
+    }));
 
+    // ✅ CRITICAL: Catch-all SPA route ONLY for non-API routes
+    // This MUST come AFTER express.static() and AFTER registerRoutes()
     app.get("*", (_req, res) => {
+      // Don't serve HTML for API routes (safety check)
+      if (_req.path.startsWith("/api")) {
+        return res.status(404).json({ message: "API route not found" });
+      }
+
       const indexPath = path.join(publicPath, "index.html");
+      res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
       res.sendFile(indexPath, (err) => {
         if (err) {
           log(`⚠️  Could not send index.html from ${indexPath}`);
-          res.status(500).json({ message: "Client build files not found. Please run build." });
+          log(`⚠️  Error details: ${err.message}`);
+          res.status(500).json({ message: "Client build files not found. Please run npm run build." });
         }
       });
     });
