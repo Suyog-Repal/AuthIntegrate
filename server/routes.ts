@@ -1,7 +1,7 @@
 // server/routes.ts
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer, WebSocket } from "ws";
+import { Server as SocketIOServer } from "socket.io";
 import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
@@ -9,6 +9,8 @@ import { requireAuth } from "./middleware/auth";
 import { loginSchema, insertUserProfileSchema, hardwareVerifySchema } from "@shared/schema";
 import { z } from "zod";
 import { hardwareService } from "./services/hardwareService";
+import { sendRegistrationEmail } from "./services/emailService";
+import { exportLogsToExcel, exportLogsToPDF } from "./services/exportService";
 /* NOTE: This file is the same as your original routes.ts with one
   new endpoint added:
     GET /api/stats
@@ -75,6 +77,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         passwordHash,
         role: data.role || "user",
       });
+
+      // 🔥 PHASE 7: Send registration confirmation email asynchronously
+      await sendRegistrationEmail({
+        email: data.email,
+        name: data.name,
+        userId: data.userId,
+      });
+
       res.json({ message: "Registration successful" });
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -149,6 +159,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get stats" });
     }
   });
+
+  // 🚀 STEP 2 — Backend: Fetch previous logs with optional filters
+  app.get("/api/logs", async (req, res) => {
+    try {
+      // Extract and validate query parameters
+      const filters = {
+        date: req.query.date as string | undefined,
+        month: req.query.month ? parseInt(req.query.month as string) : undefined,
+        year: req.query.year ? parseInt(req.query.year as string) : undefined,
+        status: req.query.status as 'GRANTED' | 'DENIED' | 'REGISTERED' | undefined,
+        userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
+        startTime: req.query.startTime as string | undefined,
+        endTime: req.query.endTime as string | undefined,
+        searchTerm: req.query.search as string | undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 100,
+      };
+
+      // Remove undefined filters
+      Object.keys(filters).forEach(key => filters[key as keyof typeof filters] === undefined && delete filters[key as keyof typeof filters]);
+
+      const logs = await storage.getAccessLogsWithFilters(filters);
+      res.json(logs);
+    } catch (error: any) {
+      console.error("Get logs error:", error);
+      res.status(500).json({ message: "Failed to get logs" });
+    }
+  });
+
+  // 🔥 PHASE 6: Export logs to Excel
+  app.get("/api/logs/export/excel", async (req, res) => {
+    try {
+      // Get filters from query parameters (same as /api/logs)
+      const filters: any = {};
+      if (req.query.date) filters.date = req.query.date as string;
+      if (req.query.month) filters.month = parseInt(req.query.month as string);
+      if (req.query.year) filters.year = parseInt(req.query.year as string);
+      if (req.query.status) filters.status = req.query.status as string;
+      if (req.query.userId) filters.userId = parseInt(req.query.userId as string);
+      if (req.query.search) filters.searchTerm = req.query.search as string;
+      filters.limit = 10000; // Allow exporting up to 10,000 records
+
+      console.log('📥 Excel export filters:', filters);
+      const logs = await storage.getAccessLogsWithFilters(filters);
+      console.log(`📊 Exporting ${logs.length} logs to Excel`);
+      
+      const buffer = await exportLogsToExcel(logs);
+      console.log(`✅ Excel buffer created: ${buffer.length} bytes`);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="logs_${new Date().toISOString().split('T')[0]}.xlsx"`);
+      res.setHeader('Content-Length', buffer.length);
+      res.end(buffer);
+    } catch (error: any) {
+      console.error("❌ Excel export error:", error.message, error);
+      res.status(500).json({ message: `Export failed: ${error.message}` });
+    }
+  });
+
+  // 🔥 PHASE 6: Export logs to PDF
+  app.get("/api/logs/export/pdf", async (req, res) => {
+    try {
+      // Get filters from query parameters (same as /api/logs)
+      const filters: any = {};
+      if (req.query.date) filters.date = req.query.date as string;
+      if (req.query.month) filters.month = parseInt(req.query.month as string);
+      if (req.query.year) filters.year = parseInt(req.query.year as string);
+      if (req.query.status) filters.status = req.query.status as string;
+      if (req.query.userId) filters.userId = parseInt(req.query.userId as string);
+      if (req.query.search) filters.searchTerm = req.query.search as string;
+      filters.limit = 10000; // Allow exporting up to 10,000 records
+
+      console.log('📥 PDF export filters:', filters);
+      const logs = await storage.getAccessLogsWithFilters(filters);
+      console.log(`📊 Exporting ${logs.length} logs to PDF`);
+      
+      const buffer = await exportLogsToPDF(logs);
+      console.log(`✅ PDF buffer created: ${buffer.length} bytes`);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="logs_${new Date().toISOString().split('T')[0]}.pdf"`);
+      res.setHeader('Content-Length', buffer.length);
+      res.end(buffer);
+    } catch (error: any) {
+      console.error("❌ PDF export error:", error.message, error);
+      res.status(500).json({ message: `Export failed: ${error.message}` });
+    }
+  });
+
   // ==================== NEW HARDWARE VERIFICATION ENDPOINT ====================
   app.post("/api/auth/verify_hardware", async (req, res) => {
     try {
@@ -284,43 +382,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message || "Failed to simulate event" });
     }
   });
-  // ==================== WEBSOCKET SETUP ====================
+  // ==================== SOCKET.IO SETUP ====================
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
-
-  // Add error handler to WebSocketServer to prevent unhandled errors
-  wss.on("error", (error: any) => {
-    console.error("WebSocketServer error:", error);
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: "*",
+    },
   });
 
-  const clients = new Set<WebSocket>();
-  wss.on("connection", (ws) => {
-    console.log("WebSocket client connected");
-    clients.add(ws);
-    ws.send(
-      JSON.stringify({
-        type: "hardware_status",
-        connected: hardwareService.isConnected(),
-      })
-    );
-    ws.on("close", () => {
-      clients.delete(ws);
-    });
-    ws.on("error", (error) => {
-      console.error("WebSocket error:", error);
-      clients.delete(ws);
-    });
+  io.on("connection", (socket) => {
+    console.log("Socket.io client connected:", socket.id);
   });
-  function broadcast(data: any) {
-    const message = JSON.stringify(data);
-    clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  }
+
   hardwareService.on("hardware_status_change", (connected: boolean) => {
-    broadcast({ type: "hardware_status", connected: connected });
+    io.emit("hardware_status", { connected: connected });
   });
 
   // ✅ FIX: Fetch the complete log object *after* insertion to ensure it includes the user's profile/name for the frontend.
@@ -330,7 +405,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch the MOST recent log with profile data
       const logWithUser = await storage.getRecentAccessLogs(1);
       if (logWithUser && logWithUser.length > 0) {
-        broadcast({ type: "access_log", log: logWithUser[0] });
+        // 🔥 REAL-TIME EMIT
+        io.emit("new-log", logWithUser[0]);
       }
     } catch (error) {
       console.error("Error processing access event:", error);

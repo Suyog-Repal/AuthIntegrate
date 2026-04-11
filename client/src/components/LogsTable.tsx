@@ -7,8 +7,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import { formatAbsoluteTimeIST } from "@/lib/utils";
 import type { AccessLogWithUser } from "@shared/schema";
+
+dayjs.extend(relativeTime);
 
 interface LogsTableProps {
   logs: AccessLogWithUser[];
@@ -58,7 +62,9 @@ export function LogsTable({ logs, isLoading }: LogsTableProps) {
                 {log.note || "—"}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">
-                {formatAbsoluteTimeIST(log.createdAt)}
+                <span title={formatAbsoluteTimeIST(log.createdAt)}>
+                  {dayjs(log.createdAt).fromNow()}
+                </span>
               </TableCell>
             </TableRow>
           ))}

@@ -145,6 +145,91 @@ class DatabaseStorage {
     return rows;
   }
 
+  // 🔥 PHASE 2: Enhanced filtering for logs with support for date, month, year, status, userId, and time range
+  async getAccessLogsWithFilters(filters: {
+    date?: string; // YYYY-MM-DD
+    month?: number; // 1-12
+    year?: number; // YYYY
+    status?: 'GRANTED' | 'DENIED' | 'REGISTERED';
+    userId?: number;
+    startTime?: string; // HH:MM:SS
+    endTime?: string; // HH:MM:SS
+    searchTerm?: string; // For searching by name or email
+    limit?: number;
+  }): Promise<any[]> {
+    let query = `
+      SELECT
+        l.id,
+        l.user_id AS userId,
+        l.result,
+        l.note,
+        l.created_at AS createdAt,
+        p.email,
+        p.mobile,
+        p.name
+      FROM access_logs l
+      LEFT JOIN user_profiles p ON l.user_id = p.user_id
+      WHERE 1=1
+    `;
+    const params: any[] = [];
+
+    // Date filter (exact date)
+    if (filters.date) {
+      query += ` AND DATE(l.created_at) = ?`;
+      params.push(filters.date);
+    }
+
+    // Month filter
+    if (filters.month !== undefined && filters.month >= 1 && filters.month <= 12) {
+      query += ` AND MONTH(l.created_at) = ?`;
+      params.push(filters.month);
+    }
+
+    // Year filter
+    if (filters.year) {
+      query += ` AND YEAR(l.created_at) = ?`;
+      params.push(filters.year);
+    }
+
+    // Status filter
+    if (filters.status) {
+      query += ` AND l.result = ?`;
+      params.push(filters.status);
+    }
+
+    // User ID filter
+    if (filters.userId) {
+      query += ` AND l.user_id = ?`;
+      params.push(filters.userId);
+    }
+
+    // Time range filter
+    if (filters.startTime) {
+      query += ` AND TIME(l.created_at) >= ?`;
+      params.push(filters.startTime);
+    }
+    if (filters.endTime) {
+      query += ` AND TIME(l.created_at) <= ?`;
+      params.push(filters.endTime);
+    }
+
+    // Search filter (by name or email)
+    if (filters.searchTerm) {
+      query += ` AND (p.name LIKE ? OR p.email LIKE ?)`;
+      const searchPattern = `%${filters.searchTerm}%`;
+      params.push(searchPattern, searchPattern);
+    }
+
+    query += ` ORDER BY l.created_at DESC`;
+    
+    const limit = filters.limit || 100;
+    query += ` LIMIT ?`;
+    params.push(limit);
+
+    const [rows]: any = await db.query(query, params);
+    return rows;
+  }
+
   async getSystemStats() {
     const [userCountRows]: any = await db.query(`
         SELECT COUNT(p.user_id) AS totalUsers

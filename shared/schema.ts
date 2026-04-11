@@ -97,6 +97,9 @@ export type UserWithProfile = User & {
 };
 export type AccessLogWithUser = AccessLog & {
   user: User | null;
+  name?: string;
+  email?: string;
+  mobile?: string;
 };
 export type SystemStats = {
   totalUsers: number;

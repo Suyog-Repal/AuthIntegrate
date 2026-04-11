@@ -1,10 +1,12 @@
 // client/src/pages/AdminDashboard.tsx
 import { useQuery } from "@tanstack/react-query";
+import { io } from "socket.io-client";
 import { Header } from "@/components/Header";
 import { StatsCards } from "@/components/StatsCards";
 import { LiveStatus } from "@/components/LiveStatus";
 import { AnalyticsCharts } from "@/components/AnalyticsCharts";
 import { UserTable } from "@/components/UserTable";
+import { LogsPage } from "./LogsPage";
 import {
   Tabs,
   TabsContent,
@@ -102,57 +104,60 @@ export default function AdminDashboard() {
   }, [users]);
 
 
-  // WebSocket connection: Stable logic is already in place
+  // 🚀 STEP 5 — Fetch old logs (IMPORTANT)
+  useEffect(() => {
+    if (!isAdmin) return;
+    fetch("/api/logs")
+      .then(res => res.json())
+      .then(data => {
+        setLiveLogs(data);
+      })
+      .catch(err => console.error("Failed to fetch logs:", err));
+  }, [isAdmin]);
+
+  // 🚀 STEP 4 — Frontend: Connect socket
   useEffect(() => {
     if (!isAdmin) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    const ws = new WebSocket(wsUrl);
+    const socket = io(window.location.origin);
 
-    ws.onopen = () => {
-      console.log("WebSocket connected successfully.");
+    socket.on("connect", () => {
+      console.log("Socket.io connected successfully.");
       setHardwareConnected(true); 
-    };
+    });
     
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "access_log") {
+    // 🚀 STEP 6 — Real-time updates
+    socket.on("new-log", (data) => {
+      const newLog = data as AccessLogWithUser;
+      
+      refetchGroup(); 
+      
+      setLiveLogs((prev) => {
+          if (prev.some(log => log.id === newLog.id)) return prev;
           
-          refetchGroup(); 
-          
-          setLiveLogs((prev) => {
-              const newLog = data.log as AccessLogWithUser;
-              if (prev.some(log => log.id === newLog.id)) return prev;
-              
-              const matchedUser = usersRef.current.find(u => u.id === newLog.userId)?.profile;
-              const enrichedLog = matchedUser 
-                ? { ...newLog, name: matchedUser.name, email: matchedUser.email }
-                : newLog;
+          const matchedUser = usersRef.current.find(u => u.id === newLog.userId)?.profile;
+          const enrichedLog = matchedUser 
+            ? { ...newLog, name: matchedUser.name, email: matchedUser.email }
+            : newLog;
 
-              return [enrichedLog, ...prev].slice(0, 20);
-          });
-        } else if (data.type === "hardware_status") {
-          setHardwareConnected(data.connected);
-        }
-      } catch (error) {
-        console.error("WebSocket message error:", error);
-      }
-    };
-    
-    ws.onerror = () => setHardwareConnected(false);
-    ws.onclose = (event) => {
-        if (event.code !== 1000) { 
-            console.log("WebSocket closed unexpectedly. Check server or network.");
-        }
+          return [enrichedLog, ...prev].slice(0, 20);
+      });
+    });
+
+    socket.on("hardware_status", (data: { connected: boolean }) => {
+      setHardwareConnected(data.connected);
+    });
+
+    socket.on("disconnect", () => {
+        console.log("Socket.io disconnected.");
         setHardwareConnected(false);
-    };
+    });
 
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.close(1000, "Component unmount"); 
-      }
+      socket.off("new-log");
+      socket.off("hardware_status");
+      socket.off("disconnect");
+      socket.disconnect();
     };
   }, [isAdmin, refetchGroup]); 
 
@@ -247,12 +252,18 @@ export default function AdminDashboard() {
             <TabsTrigger value="analytics" data-testid="tab-analytics">
               Analytics
             </TabsTrigger>
+            <TabsTrigger value="logs" data-testid="tab-logs">
+              📊 Logs
+            </TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">
               Users ({users.length})
             </TabsTrigger>
           </TabsList>
           <TabsContent value="analytics" className="space-y-6">
             <AnalyticsCharts logs={allLogs} />
+          </TabsContent>
+          <TabsContent value="logs">
+            <LogsPage />
           </TabsContent>
           <TabsContent value="users">
             <Card>

@@ -308,7 +308,7 @@
   }
 
   /* If there's a 1px border, adjust the inset so that it covers that parent's border */
-  .border.toggle-elevate::before {
+  .toggle-elevate[class*="border"]::before {
     inset: -1px;
   }
 
@@ -346,11 +346,10 @@
   }
 
   /* If there's a 1px border, adjust the inset so that it covers that parent's border */
-  .border.hover-elevate:not(.no-hover-interaction-elevate)::after,
-  .border.active-elevate:not(.no-active-interaction-elevate)::after,
-  .border.hover-elevate-2:not(.no-hover-interaction-elevate)::after,
-  .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
-  .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
+  .hover-elevate[class*="border"]:not(.no-hover-interaction-elevate)::after,
+  .active-elevate[class*="border"]:not(.no-active-interaction-elevate)::after,
+  .hover-elevate-2[class*="border"]:not(.no-hover-interaction-elevate)::after,
+  .active-elevate-2[class*="border"]:not(.no-active-interaction-elevate)::after {
     inset: -1px;
   }
 }
