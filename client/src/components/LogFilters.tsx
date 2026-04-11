@@ -66,9 +66,9 @@ export function LogFilters({
   };
 
   return (
-    <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200">
+    <Card className="bg-card dark:bg-card border-border dark:border-border">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-foreground dark:text-foreground">
           <span>🔍 Filter Logs</span>
         </CardTitle>
       </CardHeader>
@@ -76,7 +76,7 @@ export function LogFilters({
         <div className="space-y-6">
           {/* Date Filter Selection */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Date Range</label>
+            <label className="text-sm font-medium text-foreground dark:text-foreground">Date Range</label>
             <div className="flex gap-2">
               <Button
                 variant={dateFilter === 'all' ? 'default' : 'outline'}
@@ -108,7 +108,7 @@ export function LogFilters({
           {/* Specific Date Input */}
           {dateFilter === 'date' && (
             <div className="space-y-2">
-              <label htmlFor="date-input" className="text-sm font-medium text-slate-700">
+              <label htmlFor="date-input" className="text-sm font-medium text-foreground dark:text-foreground">
                 Select Date
               </label>
               <Input
@@ -118,7 +118,7 @@ export function LogFilters({
                 onChange={(e) =>
                   setFilters((f) => ({ ...f, date: e.target.value || undefined }))
                 }
-                className="bg-white"
+                className="bg-input dark:bg-input text-foreground dark:text-foreground border-border dark:border-border"
               />
             </div>
           )}
@@ -127,7 +127,7 @@ export function LogFilters({
           {dateFilter === 'month-year' && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label htmlFor="month-select" className="text-sm font-medium text-slate-700">
+                <label htmlFor="month-select" className="text-sm font-medium text-foreground dark:text-foreground">
                   Month
                 </label>
                 <Select
@@ -136,7 +136,7 @@ export function LogFilters({
                     setFilters((f) => ({ ...f, month: value === 'all' ? undefined : parseInt(value) }))
                   }
                 >
-                  <SelectTrigger id="month-select" className="bg-white">
+                  <SelectTrigger id="month-select" className="bg-input dark:bg-input text-foreground dark:text-foreground border-border dark:border-border">
                     <SelectValue placeholder="Select month" />
                   </SelectTrigger>
                   <SelectContent>
@@ -151,7 +151,7 @@ export function LogFilters({
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="year-select" className="text-sm font-medium text-slate-700">
+                <label htmlFor="year-select" className="text-sm font-medium text-foreground dark:text-foreground">
                   Year
                 </label>
                 <Select
@@ -160,7 +160,7 @@ export function LogFilters({
                     setFilters((f) => ({ ...f, year: value === 'all' ? undefined : parseInt(value) }))
                   }
                 >
-                  <SelectTrigger id="year-select" className="bg-white">
+                  <SelectTrigger id="year-select" className="bg-input dark:bg-input text-foreground dark:text-foreground border-border dark:border-border">
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
                   <SelectContent>
@@ -178,7 +178,7 @@ export function LogFilters({
 
           {/* Status Filter */}
           <div className="space-y-2">
-            <label htmlFor="status-select" className="text-sm font-medium text-slate-700">
+            <label htmlFor="status-select" className="text-sm font-medium text-foreground dark:text-foreground">
               Status
             </label>
             <Select
@@ -190,7 +190,7 @@ export function LogFilters({
                 }))
               }
             >
-              <SelectTrigger id="status-select" className="bg-white">
+              <SelectTrigger id="status-select" className="bg-input dark:bg-input text-foreground dark:text-foreground border-border dark:border-border">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -204,7 +204,7 @@ export function LogFilters({
 
           {/* User ID Filter */}
           <div className="space-y-2">
-            <label htmlFor="user-id-input" className="text-sm font-medium text-slate-700">
+            <label htmlFor="user-id-input" className="text-sm font-medium text-foreground dark:text-foreground">
               User ID
             </label>
             <Input
@@ -219,13 +219,13 @@ export function LogFilters({
                   userId: e.target.value ? parseInt(e.target.value) : undefined,
                 }))
               }
-              className="bg-white"
+              className="bg-input dark:bg-input text-foreground dark:text-foreground border-border dark:border-border placeholder:text-muted-foreground dark:placeholder:text-muted-foreground"
             />
           </div>
 
           {/* Search Filter */}
           <div className="space-y-2">
-            <label htmlFor="search-input" className="text-sm font-medium text-slate-700">
+            <label htmlFor="search-input" className="text-sm font-medium text-foreground dark:text-foreground">
               Search by Name/Email
             </label>
             <Input
@@ -236,16 +236,16 @@ export function LogFilters({
               onChange={(e) =>
                 setFilters((f) => ({ ...f, searchTerm: e.target.value || undefined }))
               }
-              className="bg-white"
+              className="bg-input dark:bg-input text-foreground dark:text-foreground border-border dark:border-border placeholder:text-muted-foreground dark:placeholder:text-muted-foreground"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4 border-t">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-4 border-t border-border dark:border-border">
             <Button
               onClick={handleApply}
               disabled={isLoading}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
             >
               {isLoading ? '⏳ Filtering...' : '🔍 Apply Filters'}
             </Button>
@@ -254,6 +254,7 @@ export function LogFilters({
               onClick={handleReset}
               variant="outline"
               disabled={isLoading}
+              className="bg-background dark:bg-background text-foreground dark:text-foreground border-border dark:border-border hover:bg-muted dark:hover:bg-muted"
             >
               <RotateCcw className="w-4 h-4 mr-1" />
               Reset
@@ -263,7 +264,7 @@ export function LogFilters({
               onClick={onExportExcel}
               disabled={isExporting}
               variant="outline"
-              className="text-green-700 border-green-300 hover:bg-green-50"
+              className="text-green-700 dark:text-green-400 border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-950"
             >
               <Download className="w-4 h-4 mr-1" />
               Excel
@@ -273,7 +274,7 @@ export function LogFilters({
               onClick={onExportPDF}
               disabled={isExporting}
               variant="outline"
-              className="text-red-700 border-red-300 hover:bg-red-50"
+              className="text-red-700 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-950"
             >
               <Download className="w-4 h-4 mr-1" />
               PDF
