@@ -10,12 +10,6 @@ const dbConfig = {
   database: process.env.DB_NAME || "authintegrate",
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  // 🔥 FIX: Add connection timeout (default 10 seconds → 5 seconds for faster failure)
-  enableKeepAlive: true,
-  keepAliveInitialDelayMs: 30000,
-  connectTimeout: 5000,
-  waitForConnectionsMillis: 5000,
 };
 
 let connectionAttempts = 0;
