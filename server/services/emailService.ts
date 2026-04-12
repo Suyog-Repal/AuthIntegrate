@@ -107,7 +107,7 @@ Security Reminder: Never share your User ID or PIN with anyone. Keep your creden
 
 If you didn't register this account or have any questions, please contact our support team immediately.
 
-© 2024 AuthIntegrate - Secure Authentication System
+© 2026 AuthIntegrate - Secure Authentication System
       `,
     };
 
