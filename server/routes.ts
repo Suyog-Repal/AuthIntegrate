@@ -181,9 +181,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Save token with 15 minute expiry
       await storage.saveResetToken(profile.user_id, resetToken, 15);
 
-      // Construct reset link
-      const baseUrl = process.env.BASE_URL || "http://localhost:5000";
-      const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+      // Construct reset link using FRONTEND_URL (not backend API URL)
+      // CRITICAL: This should point to frontend, not localhost:5000
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      
+      // Validate FRONTEND_URL configuration
+      if (!process.env.FRONTEND_URL) {
+        console.warn(
+          "⚠️  FRONTEND_URL environment variable is missing! Using fallback: http://localhost:5173\n" +
+          "    For production, add FRONTEND_URL to your .env file (e.g., FRONTEND_URL=https://authintegrate.ddnsgeek.com)"
+        );
+      }
+      
+      const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
 
       // Send reset email
       await sendPasswordResetEmail({
