@@ -32,6 +32,8 @@ export const userProfiles = pgTable("user_profiles", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   mobile: varchar("mobile", { length: 20 }),
   passwordHash: text("password_hash").notNull(),
+  resetToken: varchar("reset_token", { length: 255 }),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   role: userRoleEnum("role").default("user").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

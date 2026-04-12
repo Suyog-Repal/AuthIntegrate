@@ -253,6 +253,37 @@ class DatabaseStorage {
         accessDeniedToday: todayStats.accessDeniedToday || 0,
     };
   }
+
+  // ==================== PASSWORD RESET METHODS ====================
+  async saveResetToken(userId: number, token: string, expiryMinutes: number = 15): Promise<void> {
+    const expiryTime = new Date(Date.now() + expiryMinutes * 60 * 1000);
+    await db.query(
+      `UPDATE user_profiles SET reset_token = ?, reset_token_expiry = ? WHERE user_id = ?`,
+      [token, expiryTime, userId]
+    );
+  }
+
+  async getUserByResetToken(token: string): Promise<any | null> {
+    const [rows]: any = await db.query(
+      `SELECT * FROM user_profiles WHERE reset_token = ? AND reset_token_expiry > NOW()`,
+      [token]
+    );
+    return rows[0] || null;
+  }
+
+  async clearResetToken(userId: number): Promise<void> {
+    await db.query(
+      `UPDATE user_profiles SET reset_token = NULL, reset_token_expiry = NULL WHERE user_id = ?`,
+      [userId]
+    );
+  }
+
+  async updatePassword(userId: number, passwordHash: string): Promise<void> {
+    await db.query(
+      `UPDATE user_profiles SET password_hash = ? WHERE user_id = ?`,
+      [passwordHash, userId]
+    );
+  }
 }
 
 export const storage = new DatabaseStorage();

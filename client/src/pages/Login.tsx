@@ -105,6 +105,15 @@ export default function Login() {
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => setLocation("/forgot-password")}
+                  className="text-xs text-primary hover:underline font-medium"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </div>
 
             <Button

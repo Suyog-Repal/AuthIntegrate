@@ -12,6 +12,8 @@ import Register from "@/pages/Register";
 import AdminDashboard from "@/pages/AdminDashboard";
 import UserDashboard from "@/pages/UserDashboard";
 import Profile from "@/pages/Profile";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 // ⭐ NEW — Import your new landing page
 import Home from "@/pages/Home";
@@ -64,6 +66,23 @@ function Router() {
           <Redirect to={isAdmin ? "/dashboard/admin" : "/dashboard/user"} />
         ) : (
           <Register />
+        )}
+      </Route>
+
+      {/* PASSWORD RESET */}
+      <Route path="/forgot-password">
+        {isAuthenticated ? (
+          <Redirect to={isAdmin ? "/dashboard/admin" : "/dashboard/user"} />
+        ) : (
+          <ForgotPassword />
+        )}
+      </Route>
+
+      <Route path="/reset-password">
+        {isAuthenticated ? (
+          <Redirect to={isAdmin ? "/dashboard/admin" : "/dashboard/user"} />
+        ) : (
+          <ResetPassword />
         )}
       </Route>
 

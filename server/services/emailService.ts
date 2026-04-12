@@ -126,3 +126,110 @@ If you didn't register this account or have any questions, please contact our su
     return false;
   }
 }
+
+// ==================== PASSWORD RESET EMAIL ====================
+interface PasswordResetEmailOptions {
+  email: string;
+  name: string;
+  resetLink: string;
+  expiryMinutes?: number;
+}
+
+export async function sendPasswordResetEmail(options: PasswordResetEmailOptions): Promise<boolean> {
+  try {
+    const transporter = getEmailTransporter();
+    
+    if (!transporter) {
+      console.log('📧 Email service not configured. Skipping password reset email notification.');
+      return false;
+    }
+
+    const expiryMinutes = options.expiryMinutes || 15;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: options.email,
+      subject: 'Reset Your Password - AuthIntegrate System 🔐',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">AuthIntegrate System</h1>
+            <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Password Recovery</p>
+          </div>
+          
+          <div style="background: white; padding: 40px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #333; margin-top: 0;">Password Reset Request 🔐</h2>
+            
+            <p style="color: #666; line-height: 1.6; font-size: 16px;">
+              Hello ${options.name},
+            </p>
+
+            <p style="color: #666; line-height: 1.6;">
+              We received a request to reset the password for your AuthIntegrate account. Click the button below to proceed with creating a new password.
+            </p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${options.resetLink}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 16px;">
+                Reset Password
+              </a>
+            </div>
+
+            <p style="color: #666; line-height: 1.6; font-size: 14px;">
+              <strong>⏱️  Expiration:</strong> This link will expire in ${expiryMinutes} minutes.
+            </p>
+
+            <div style="background: #f0f4ff; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0 0 10px 0; color: #333;"><strong>Can't reset your password?</strong></p>
+              <p style="margin: 5px 0; color: #666;">
+                If you didn't request a password reset, please ignore this email. Your account is secure.
+              </p>
+            </div>
+
+            <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #856404;">
+                <strong>🔒 Security Notice:</strong> Never share this link with anyone. We will never ask for your password via email.
+              </p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 25px 0;">
+
+            <p style="color: #999; font-size: 12px; margin: 0; text-align: center;">
+              © 2026 AuthIntegrate - Secure Authentication System<br>
+              This is an automated message. Please do not reply to this email.
+            </p>
+          </div>
+        </div>
+      `,
+      text: `
+Password Reset Request
+
+Hello ${options.name},
+
+We received a request to reset your password. 
+
+Click this link to reset your password:
+${options.resetLink}
+
+This link will expire in ${expiryMinutes} minutes.
+
+If you didn't request this, please ignore this email.
+
+© 2026 AuthIntegrate - Secure Authentication System
+      `,
+    };
+
+    // Send email asynchronously without blocking the API response
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('❌ Error sending password reset email:', error.message);
+      } else {
+        console.log('✅ Password reset email sent successfully:', info.response);
+      }
+    });
+
+    return true;
+  } catch (error: any) {
+    console.error('❌ Email service error:', error.message);
+    return false;
+  }
+}

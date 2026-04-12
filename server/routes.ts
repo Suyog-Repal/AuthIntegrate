@@ -4,12 +4,13 @@ import { createServer, type Server } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import session from "express-session";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import { storage } from "./storage";
 import { requireAuth } from "./middleware/auth";
 import { loginSchema, insertUserProfileSchema, hardwareVerifySchema } from "@shared/schema";
 import { z } from "zod";
 import { hardwareService } from "./services/hardwareService";
-import { sendRegistrationEmail } from "./services/emailService";
+import { sendRegistrationEmail, sendPasswordResetEmail } from "./services/emailService";
 import { exportLogsToExcel, exportLogsToPDF } from "./services/exportService";
 /* NOTE: This file is the same as your original routes.ts with one
   new endpoint added:
@@ -27,6 +28,21 @@ const updateUserProfileSchema = z.object({
   mobile: z.string().optional().nullable(),
   role: z.literal("admin").or(z.literal("user")),
 });
+
+// ==================== PASSWORD RESET SCHEMAS ====================
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password confirmation is required"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
 const esp32EventSchema = z.object({
   command: z.literal("REG").or(z.literal("LOGIN")),
   userId: z.number().int().min(0),
@@ -143,6 +159,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get user" });
     }
   });
+
+  // ==================== PASSWORD RESET ENDPOINTS ====================
+  // POST /api/auth/forgot-password
+  // Request: { email: string }
+  // Response: { message: string }
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+      
+      // Check if user exists
+      const profile = await storage.getUserProfileByEmail(email);
+      if (!profile) {
+        // Don't expose that email doesn't exist for security
+        return res.json({ message: "If an account exists with that email, a password reset link will be sent" });
+      }
+
+      // Generate secure random token
+      const resetToken = randomBytes(32).toString("hex");
+      
+      // Save token with 15 minute expiry
+      await storage.saveResetToken(profile.user_id, resetToken, 15);
+
+      // Construct reset link
+      const baseUrl = process.env.BASE_URL || "http://localhost:5000";
+      const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+
+      // Send reset email
+      await sendPasswordResetEmail({
+        email: profile.email,
+        name: profile.name,
+        resetLink,
+        expiryMinutes: 15,
+      });
+
+      res.json({ message: "If an account exists with that email, a password reset link will be sent" });
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      res.status(400).json({ message: error.message || "Failed to process password reset request" });
+    }
+  });
+
+  // POST /api/auth/reset-password
+  // Request: { token: string, newPassword: string, confirmPassword: string }
+  // Response: { message: string }
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = resetPasswordSchema.parse(req.body);
+
+      // Verify token and get user
+      const profile = await storage.getUserByResetToken(token);
+      if (!profile) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+
+      // Hash new password
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+
+      // Update password and clear reset token
+      await storage.updatePassword(profile.user_id, passwordHash);
+      await storage.clearResetToken(profile.user_id);
+
+      res.json({ message: "Password reset successful" });
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      res.status(400).json({ message: error.message || "Failed to reset password" });
+    }
+  });
+
   // ==================== STATS ENDPOINT (ADDED FIX) ====================
   // Returns system stats + current hardware connection flag
   // Frontend calls "/api/stats" frequently to show the stats cards and hardware status.
@@ -184,6 +268,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Get logs error:", error);
       res.status(500).json({ message: "Failed to get logs" });
+    }
+  });
+
+  // ==================== USER LOGS ENDPOINT ====================
+  // GET /api/logs/user - Get logs for the authenticated user
+  app.get("/api/logs/user", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const logs = await storage.getUserAccessLogs(userId);
+      res.json(logs);
+    } catch (error: any) {
+      console.error("Get user logs error:", error);
+      res.status(500).json({ message: "Failed to get user logs" });
     }
   });
 

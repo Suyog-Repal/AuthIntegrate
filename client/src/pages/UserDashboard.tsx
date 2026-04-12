@@ -18,7 +18,7 @@ export default function UserDashboard() {
   });
 
   const { data: logs = [], isLoading: logsLoading } = useQuery<AccessLogWithUser[]>({
-    queryKey: ["logs/user", user?.id],
+    queryKey: ["logs", "user"],
     
     // FINAL FIX: Override global staleTime to ensure logs are ALWAYS considered stale,
     // guaranteeing a fetch when the component mounts or gets focus.
