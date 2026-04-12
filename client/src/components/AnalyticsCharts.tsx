@@ -1,4 +1,3 @@
-// client\src\components\AnalyticsCharts.tsx
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   LineChart, 
@@ -15,6 +14,7 @@ import {
   Legend, 
   ResponsiveContainer,
 } from "recharts";
+import { formatAbsoluteTimeIST } from "@/lib/utils";
 import type { AccessLogWithUser } from "@shared/schema";
 
 interface AnalyticsChartsProps {
@@ -22,36 +22,38 @@ interface AnalyticsChartsProps {
 }
 
 /**
- * Converts a UTC date to Mumbai timezone date for comparison
+ * Gets the start of day in Mumbai timezone (IST)
+ * Note: Backend already returns IST-converted timestamps, so we just parse them
  */
-function getISTDate(utcDate: Date): Date {
-  const istOffset = 5.5 * 60 * 60 * 1000; // Mumbai timezone: UTC+5:30
-  return new Date(utcDate.getTime() + istOffset);
-}
-
-/**
- * Gets the start of day in Mumbai timezone
- */
-function getStartOfDayIST(date: Date): number {
-  const istDate = getISTDate(date);
-  const year = istDate.getUTCFullYear();
-  const month = istDate.getUTCMonth();
-  const day = istDate.getUTCDate();
-  const startOfDay = new Date(Date.UTC(year, month, day));
+function getStartOfDayIST(timestamp: string): number {
+  // Parse the IST timestamp and get the start of day
+  const date = new Date(timestamp);
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
+  };
+  const dateStr = date.toLocaleString("en-CA", options); // Returns YYYY-MM-DD
+  const startOfDay = new Date(dateStr);
   return startOfDay.getTime();
 }
 
 /**
  * Gets a date N days ago in Mumbai timezone
+ * Note: Backend already returns IST-converted timestamps
  */
 function getDateNDaysAgoIST(daysAgo: number): number {
   const now = new Date();
-  const istDate = getISTDate(now);
-  const year = istDate.getUTCFullYear();
-  const month = istDate.getUTCMonth();
-  const day = istDate.getUTCDate();
-  
-  const targetDate = new Date(Date.UTC(year, month, day - daysAgo));
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
+  };
+  const today = now.toLocaleString("en-CA", options); // Returns YYYY-MM-DD
+  const todayDate = new Date(today);
+  const targetDate = new Date(todayDate.getTime() - daysAgo * 24 * 60 * 60 * 1000);
   return targetDate.getTime();
 }
 

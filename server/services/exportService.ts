@@ -14,6 +14,22 @@ interface LogEntry {
 }
 
 /**
+ * Gets current date in Mumbai timezone (IST) for filename generation
+ * Format: YYYY-MM-DD
+ */
+function getISTDateForFilename(): string {
+  const now = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
+  };
+  const formatted = now.toLocaleString("en-CA", options); // en-CA gives YYYY-MM-DD format
+  return formatted;
+}
+
+/**
  * Formats a timestamp to Mumbai timezone for exports
  * @param timestamp - The timestamp to format
  * @returns Formatted date-time string in Mumbai timezone (UTC+5:30)
@@ -65,7 +81,7 @@ function getCurrentTimeIST(): string {
   }
 }
 
-export async function exportLogsToExcel(logs: LogEntry[], filename: string = `logs_${new Date().toISOString().split('T')[0]}.xlsx`): Promise<Buffer> {
+export async function exportLogsToExcel(logs: LogEntry[], filename: string = `logs_${getISTDateForFilename()}.xlsx`): Promise<Buffer> {
   try {
     if (!logs || logs.length === 0) {
       console.warn('⚠️  No logs to export');
@@ -109,7 +125,7 @@ export async function exportLogsToExcel(logs: LogEntry[], filename: string = `lo
   }
 }
 
-export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs_${new Date().toISOString().split('T')[0]}.pdf`): Promise<Buffer> {
+export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs_${getISTDateForFilename()}.pdf`): Promise<Buffer> {
   try {
     if (!logs || logs.length === 0) {
       console.warn('⚠️  No logs to export - returning empty PDF');

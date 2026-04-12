@@ -52,6 +52,23 @@ const esp32EventSchema = z.object({
   note: z.string().optional(),
 });
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ==================== UTILITY FUNCTIONS ====================
+  /**
+   * Gets current date in Mumbai timezone (IST) for filename generation
+   * Format: YYYY-MM-DD
+   */
+  function getISTDateForFilename(): string {
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
+    };
+    const formatted = now.toLocaleString("en-CA", options); // en-CA gives YYYY-MM-DD format
+    return formatted;
+  }
+
   // ==================== SESSION SETUP ====================
   if (!process.env.SESSION_SECRET) {
     throw new Error("SESSION_SECRET must be set in environment variables");
@@ -328,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`✅ Excel buffer created: ${buffer.length} bytes`);
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename="logs_${new Date().toISOString().split('T')[0]}.xlsx"`);
+      res.setHeader('Content-Disposition', `attachment; filename="logs_${getISTDateForFilename()}.xlsx"`);
       res.setHeader('Content-Length', buffer.length);
       res.end(buffer);
     } catch (error: any) {
@@ -358,7 +375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`✅ PDF buffer created: ${buffer.length} bytes`);
 
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="logs_${new Date().toISOString().split('T')[0]}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="logs_${getISTDateForFilename()}.pdf"`);
       res.setHeader('Content-Length', buffer.length);
       res.end(buffer);
     } catch (error: any) {

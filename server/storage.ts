@@ -21,8 +21,8 @@ class DatabaseStorage {
   async getAllUsersWithProfiles(): Promise<any[]> {
     const [rows]: any = await db.query(`
       SELECT
-          u.id, u.finger_id, u.created_at,
-          p.id as profile_id, p.user_id, p.email, p.mobile, p.role, p.password_hash, p.created_at as profile_created_at, p.name
+          u.id, u.finger_id, CONVERT_TZ(u.created_at, '+00:00', '+05:30') AS created_at,
+          p.id as profile_id, p.user_id, p.email, p.mobile, p.role, p.password_hash, CONVERT_TZ(p.created_at, '+00:00', '+05:30') as profile_created_at, p.name
       FROM users u
       LEFT JOIN user_profiles p ON u.id = p.user_id
       ORDER BY u.id
@@ -46,8 +46,8 @@ class DatabaseStorage {
   async getUserWithProfile(userId: number): Promise<any> {
     const [rows]: any = await db.query(
       `SELECT
-          u.id, u.finger_id, u.created_at,
-          p.id as profile_id, p.user_id, p.email, p.mobile, p.role, p.password_hash, p.created_at as profile_created_at, p.name
+          u.id, u.finger_id, CONVERT_TZ(u.created_at, '+00:00', '+05:30') AS created_at,
+          p.id as profile_id, p.user_id, p.email, p.mobile, p.role, p.password_hash, CONVERT_TZ(p.created_at, '+00:00', '+05:30') as profile_created_at, p.name
       FROM users u
       LEFT JOIN user_profiles p ON u.id = p.user_id
       WHERE u.id = ?`,
@@ -73,11 +73,17 @@ class DatabaseStorage {
     };
   }
   async getUserProfileByUserId(userId: number) {
-    const [rows]: any = await db.query("SELECT * FROM user_profiles WHERE user_id = ?", [userId]);
+    const [rows]: any = await db.query(`
+      SELECT id, user_id, email, mobile, role, password_hash, CONVERT_TZ(created_at, '+00:00', '+05:30') AS created_at, name, reset_token, reset_token_expiry 
+      FROM user_profiles WHERE user_id = ?
+    `, [userId]);
     return rows[0] || null;
   }
   async getUserProfileByEmail(email: string) {
-    const [rows]: any = await db.query("SELECT * FROM user_profiles WHERE email = ?", [email]);
+    const [rows]: any = await db.query(`
+      SELECT id, user_id, email, mobile, role, password_hash, CONVERT_TZ(created_at, '+00:00', '+05:30') AS created_at, name, reset_token, reset_token_expiry 
+      FROM user_profiles WHERE email = ?
+    `, [email]);
     return rows[0] || null;
   }
   async createUserProfile(profile: Omit<InsertUserProfile, 'password'> & { passwordHash: string }) {
@@ -109,7 +115,7 @@ class DatabaseStorage {
            l.user_id AS userId,
            l.result,
            l.note,
-           l.created_at AS createdAt,
+           CONVERT_TZ(l.created_at, '+00:00', '+05:30') AS createdAt,
            p.email,
            p.mobile,
            p.name AS name
@@ -130,7 +136,7 @@ class DatabaseStorage {
            l.user_id AS userId,
            l.result,
            l.note,
-           l.created_at AS createdAt,
+           CONVERT_TZ(l.created_at, '+00:00', '+05:30') AS createdAt,
            p.email,
            p.mobile,
            p.name AS name
