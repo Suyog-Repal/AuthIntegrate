@@ -24,9 +24,18 @@ async function createConnectionPool() {
     
     const pool = await mysql.createPool(dbConfig);
     
+    // Set timezone for all connections in the pool
+    // This ensures IST (Asia/Kolkata - UTC+5:30) is used for all datetime operations
+    pool.on('connection', (connection: any) => {
+      connection.query("SET time_zone = '+05:30'");
+      connection.query("SET SESSION sql_mode = 'STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
+    });
+    
     // Test the connection
     const connection = await pool.getConnection();
     await connection.query("SET time_zone = '+05:30'");
+    const [tzResult]: any = await connection.query("SELECT @@time_zone AS timezone");
+    console.log(`✅ Database timezone set to: ${tzResult[0].timezone}`);
     connection.release();
     
     console.log("✅ Connected to MySQL successfully!");

@@ -179,23 +179,23 @@ class DatabaseStorage {
     `;
     const params: any[] = [];
 
-    // Date filter (exact date)
+    // Date filter (exact date in IST)
     if (filters.date) {
-      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
-      query += ` AND DATE(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) = ?`;
+      // ✅ EXPLICIT IST: Compare IST dates only
+      query += ` AND DATE(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) = STR_TO_DATE(?, '%Y-%m-%d')`;
       params.push(filters.date);
     }
 
-    // Month filter
+    // Month filter (in IST year)
     if (filters.month !== undefined && filters.month >= 1 && filters.month <= 12) {
-      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
+      // ✅ EXPLICIT IST: Filter by IST month
       query += ` AND MONTH(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) = ?`;
       params.push(filters.month);
     }
 
-    // Year filter
+    // Year filter (in IST)
     if (filters.year) {
-      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
+      // ✅ EXPLICIT IST: Filter by IST year
       query += ` AND YEAR(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) = ?`;
       params.push(filters.year);
     }
@@ -212,15 +212,15 @@ class DatabaseStorage {
       params.push(filters.userId);
     }
 
-    // Time range filter
+    // Time range filter (in IST)
     if (filters.startTime) {
-      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
-      query += ` AND TIME(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) >= ?`;
+      // ✅ EXPLICIT IST: Filter by IST time
+      query += ` AND TIME(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) >= STR_TO_TIME(?)`;
       params.push(filters.startTime);
     }
     if (filters.endTime) {
-      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
-      query += ` AND TIME(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) <= ?`;
+      // ✅ EXPLICIT IST: Filter by IST time
+      query += ` AND TIME(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) <= STR_TO_TIME(?)`;
       params.push(filters.endTime);
     }
 
@@ -248,12 +248,13 @@ class DatabaseStorage {
     `);
     const [logCountRows]: any = await db.query("SELECT COUNT(*) AS total FROM access_logs");
     
-    // ✅ FIX: Use CONVERT_TZ to compare in Mumbai timezone (IST: UTC+5:30)
-    // TODAY is calculated as: DATE(CONVERT_TZ(created_at, '+00:00', '+05:30')) = CURDATE()
+    // ✅ CRITICAL FIX: Use explicit IST date comparison for accuracy
+    // Both sides must use the same timezone: CONVERT_TZ(timestamp, '+00:00', '+05:30')
+    // This ensures "today" means IST date, not UTC date
     const [todayStatsRows]: any = await db.query(`
         SELECT
-            SUM(CASE WHEN result = 'GRANTED' AND DATE(CONVERT_TZ(created_at, '+00:00', '+05:30')) = CURDATE() THEN 1 ELSE 0 END) AS accessGrantedToday,
-            SUM(CASE WHEN result = 'DENIED' AND DATE(CONVERT_TZ(created_at, '+00:00', '+05:30')) = CURDATE() THEN 1 ELSE 0 END) AS accessDeniedToday
+            SUM(CASE WHEN result = 'GRANTED' AND DATE(CONVERT_TZ(created_at, '+00:00', '+05:30')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')) THEN 1 ELSE 0 END) AS accessGrantedToday,
+            SUM(CASE WHEN result = 'DENIED' AND DATE(CONVERT_TZ(created_at, '+00:00', '+05:30')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+05:30')) THEN 1 ELSE 0 END) AS accessDeniedToday
         FROM access_logs
     `);
     

@@ -6,25 +6,22 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Converts a UTC timestamp to Mumbai timezone (IST, UTC+5:30)
- * and formats it as a relative time string (e.g., "1 sec ago", "5 mins ago")
+ * Calculates relative time between a given timestamp and now in Mumbai timezone (IST)
+ * Backend sends IST timestamps, so we calculate difference directly without offset
  * 
- * @param timestamp - The timestamp to format (string or Date)
- * @returns Relative time string with Mumbai timezone consideration
+ * @param timestamp - The timestamp to format (string or Date) - should be IST from backend
+ * @returns Relative time string (e.g., "1 sec ago", "5 mins ago")
  */
 export function formatRelativeTimeIST(timestamp: string | Date): string {
   try {
-    // Convert to Date object if string
+    // Parse the IST timestamp from the backend
     const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    const now = new Date();
 
-    // Get current time in IST
-    const nowUTC = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-
-    // Calculate the difference in milliseconds
-    const nowIST = new Date(nowUTC.getTime() + istOffset);
-    const dateIST = new Date(date.getTime() + istOffset);
-    const diffMs = nowIST.getTime() - dateIST.getTime();
+    // ✅ CRITICAL FIX: Backend sends IST timestamps, no offset needed
+    // Both timestamps are in the same timezone context (IST from backend, current system time)
+    // We calculate the difference directly
+    const diffMs = now.getTime() - date.getTime();
 
     // Handle edge cases
     if (diffMs < 0) {
