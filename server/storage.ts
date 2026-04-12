@@ -163,7 +163,7 @@ class DatabaseStorage {
         l.user_id AS userId,
         l.result,
         l.note,
-        l.created_at AS createdAt,
+        CONVERT_TZ(l.created_at, '+00:00', '+05:30') AS createdAt,
         p.email,
         p.mobile,
         p.name
@@ -175,19 +175,22 @@ class DatabaseStorage {
 
     // Date filter (exact date)
     if (filters.date) {
-      query += ` AND DATE(l.created_at) = ?`;
+      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
+      query += ` AND DATE(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) = ?`;
       params.push(filters.date);
     }
 
     // Month filter
     if (filters.month !== undefined && filters.month >= 1 && filters.month <= 12) {
-      query += ` AND MONTH(l.created_at) = ?`;
+      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
+      query += ` AND MONTH(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) = ?`;
       params.push(filters.month);
     }
 
     // Year filter
     if (filters.year) {
-      query += ` AND YEAR(l.created_at) = ?`;
+      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
+      query += ` AND YEAR(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) = ?`;
       params.push(filters.year);
     }
 
@@ -205,11 +208,13 @@ class DatabaseStorage {
 
     // Time range filter
     if (filters.startTime) {
-      query += ` AND TIME(l.created_at) >= ?`;
+      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
+      query += ` AND TIME(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) >= ?`;
       params.push(filters.startTime);
     }
     if (filters.endTime) {
-      query += ` AND TIME(l.created_at) <= ?`;
+      // ✅ FIX: Use CONVERT_TZ to filter by IST timezone
+      query += ` AND TIME(CONVERT_TZ(l.created_at, '+00:00', '+05:30')) <= ?`;
       params.push(filters.endTime);
     }
 
@@ -236,12 +241,16 @@ class DatabaseStorage {
          FROM user_profiles p
     `);
     const [logCountRows]: any = await db.query("SELECT COUNT(*) AS total FROM access_logs");
+    
+    // ✅ FIX: Use CONVERT_TZ to compare in Mumbai timezone (IST: UTC+5:30)
+    // TODAY is calculated as: DATE(CONVERT_TZ(created_at, '+00:00', '+05:30')) = CURDATE()
     const [todayStatsRows]: any = await db.query(`
         SELECT
-            SUM(CASE WHEN result = 'GRANTED' AND DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) AS accessGrantedToday,
-            SUM(CASE WHEN result = 'DENIED' AND DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) AS accessDeniedToday
+            SUM(CASE WHEN result = 'GRANTED' AND DATE(CONVERT_TZ(created_at, '+00:00', '+05:30')) = CURDATE() THEN 1 ELSE 0 END) AS accessGrantedToday,
+            SUM(CASE WHEN result = 'DENIED' AND DATE(CONVERT_TZ(created_at, '+00:00', '+05:30')) = CURDATE() THEN 1 ELSE 0 END) AS accessDeniedToday
         FROM access_logs
     `);
+    
     const totalUsers = userCountRows && userCountRows.length > 0 ? userCountRows[0].totalUsers : 0;
     const totalAccessLogs = logCountRows && logCountRows.length > 0 ? logCountRows[0].total : 0;
     const todayStats = todayStatsRows && todayStatsRows.length > 0 ? todayStatsRows[0] : {};
@@ -256,44 +265,58 @@ class DatabaseStorage {
 
   // ==================== PASSWORD RESET METHODS ====================
   async saveResetToken(userId: number, token: string, expiryMinutes: number = 15): Promise<void> {
-    const expiryTime = new Date(Date.now() + expiryMinutes * 60 * 1000);
-    console.log(`💾 Saving reset token for user ${userId}, expires at: ${expiryTime.toISOString()}`);
+    console.log(`💾 Saving reset token for user ${userId}, expiry: ${expiryMinutes} minutes`);
     
+    // ✅ CRITICAL FIX: Let MySQL calculate expiry using NOW() to avoid timezone issues
+    // Instead of: JavaScript Date → MySQL (timezone conversion issues)
+    // Do: MySQL NOW() + INTERVAL → guaranteed to be in server timezone
     await db.query(
-      `UPDATE user_profiles SET reset_token = ?, reset_token_expiry = ? WHERE user_id = ?`,
-      [token, expiryTime, userId]
+      `UPDATE user_profiles 
+       SET reset_token = ?, 
+           reset_token_expiry = DATE_ADD(NOW(), INTERVAL ? MINUTE)
+       WHERE user_id = ?`,
+      [token, expiryMinutes, userId]
     );
     
     console.log(`   ✅ Token saved successfully`);
+    console.log(`   📌 Expiry calculated by MySQL using NOW() + INTERVAL ${expiryMinutes} MINUTE`);
   }
 
   async getUserByResetToken(token: string): Promise<any | null> {
-    console.log(`🔎 Querying database for reset token: ${token.substring(0, 16)}...`);
+    console.log(`🔎 Querying database for reset token: ${token.substring(0, 10)}...`);
     
+    // ✅ CRITICAL: MySQL handles time comparison, not JavaScript
+    // This avoids ALL timezone issues because NOW() is always in MySQL's timezone
     const [rows]: any = await db.query(
-      `SELECT * FROM user_profiles WHERE reset_token = ? AND reset_token_expiry > NOW()`,
+      `SELECT * FROM user_profiles 
+       WHERE reset_token = ? 
+       AND reset_token_expiry > NOW()`,
       [token]
     );
     
     if (rows && rows.length > 0) {
-      console.log(`   ✅ Token found! User ID: ${rows[0].user_id}`);
+      console.log(`   ✅ Token validated! User ID: ${rows[0].user_id}`);
       return rows[0];
     } else {
       console.log(`   ❌ Token not found or expired`);
       
-      // Debug: Check if token exists at all (even if expired)
-      const [allRows]: any = await db.query(
-        `SELECT user_id, reset_token, reset_token_expiry FROM user_profiles WHERE reset_token = ?`,
+      // Debug: Check if token exists but is expired (timezone debugging)
+      const [debugRows]: any = await db.query(
+        `SELECT user_id, reset_token, reset_token_expiry, NOW() as current_db_time
+         FROM user_profiles 
+         WHERE reset_token = ?`,
         [token]
       );
       
-      if (allRows && allRows.length > 0) {
-        const existingRow = allRows[0];
-        console.log(`   📌 Token exists in DB but is expired:`);
-        console.log(`      Expiry time: ${existingRow.reset_token_expiry}`);
-        console.log(`      Current time: ${new Date().toISOString()}`);
+      if (debugRows && debugRows.length > 0) {
+        const row = debugRows[0];
+        console.log(`   📌 Token EXISTS but EXPIRED or INVALID:`);
+        console.log(`      Token in DB: ${row.reset_token ? "YES" : "NO"}`);
+        console.log(`      Expiry time: ${row.reset_token_expiry}`);
+        console.log(`      Current DB time: ${row.current_db_time}`);
+        console.log(`      Status: ${new Date(row.reset_token_expiry).getTime() > new Date(row.current_db_time).getTime() ? "Should be valid (time OK)" : "EXPIRED"}`);
       } else {
-        console.log(`   📌 Token does not exist in database at all`);
+        console.log(`   📌 Token does NOT exist in database`);
       }
       
       return null;
@@ -304,7 +327,9 @@ class DatabaseStorage {
     console.log(`🗑️  Clearing reset token for user ${userId}`);
     
     await db.query(
-      `UPDATE user_profiles SET reset_token = NULL, reset_token_expiry = NULL WHERE user_id = ?`,
+      `UPDATE user_profiles 
+       SET reset_token = NULL, reset_token_expiry = NULL 
+       WHERE user_id = ?`,
       [userId]
     );
     
