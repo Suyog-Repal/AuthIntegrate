@@ -22,15 +22,15 @@ interface AnalyticsChartsProps {
 }
 
 /**
- * Converts a UTC date to IST date for comparison
+ * Converts a UTC date to Mumbai timezone date for comparison
  */
 function getISTDate(utcDate: Date): Date {
-  const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+  const istOffset = 5.5 * 60 * 60 * 1000; // Mumbai timezone: UTC+5:30
   return new Date(utcDate.getTime() + istOffset);
 }
 
 /**
- * Gets the start of day in IST
+ * Gets the start of day in Mumbai timezone
  */
 function getStartOfDayIST(date: Date): number {
   const istDate = getISTDate(date);
@@ -42,7 +42,7 @@ function getStartOfDayIST(date: Date): number {
 }
 
 /**
- * Gets a date N days ago in IST
+ * Gets a date N days ago in Mumbai timezone
  */
 function getDateNDaysAgoIST(daysAgo: number): number {
   const now = new Date();
@@ -56,14 +56,14 @@ function getDateNDaysAgoIST(daysAgo: number): number {
 }
 
 /**
- * Formats a date in IST for display
+ * Formats a date in Mumbai timezone for display
  */
 function formatDateIST(timestamp: number): string {
   const date = new Date(timestamp);
   const options: Intl.DateTimeFormatOptions = {
     month: "short",
     day: "2-digit",
-    timeZone: "Asia/Kolkata",
+    timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
   };
   return date.toLocaleString("en-US", options);
 }
@@ -109,7 +109,7 @@ export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
       <Card>
         <CardHeader>
           <CardTitle>Access Trend (Last 7 Days)</CardTitle>
-          <CardDescription>Daily access attempts breakdown (IST - UTC+5:30)</CardDescription>
+          <CardDescription>Daily access attempts breakdown</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -186,7 +186,7 @@ export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>Daily Access Rate</CardTitle>
-          <CardDescription>Comparison of granted vs denied access (dates in IST)</CardDescription>
+          <CardDescription>Comparison of granted vs denied access</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>

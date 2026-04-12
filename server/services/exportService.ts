@@ -14,9 +14,9 @@ interface LogEntry {
 }
 
 /**
- * Formats a timestamp to IST (Indian Standard Time) for exports
+ * Formats a timestamp to Mumbai timezone for exports
  * @param timestamp - The timestamp to format
- * @returns Formatted date-time string in IST
+ * @returns Formatted date-time string in Mumbai timezone (UTC+5:30)
  */
 function formatTimestampIST(timestamp: string | Date): string {
   try {
@@ -30,7 +30,7 @@ function formatTimestampIST(timestamp: string | Date): string {
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
-      timeZone: "Asia/Kolkata",
+      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
     };
 
     return date.toLocaleString("en-US", options) + " IST";
@@ -41,8 +41,8 @@ function formatTimestampIST(timestamp: string | Date): string {
 }
 
 /**
- * Gets current time in IST format
- * @returns Current date-time string in IST
+ * Gets current time in Mumbai timezone format
+ * @returns Current date-time string in Mumbai timezone (UTC+5:30)
  */
 function getCurrentTimeIST(): string {
   try {
@@ -55,7 +55,7 @@ function getCurrentTimeIST(): string {
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
-      timeZone: "Asia/Kolkata",
+      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
     };
 
     return now.toLocaleString("en-US", options) + " IST";
@@ -142,7 +142,6 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
     doc.setTextColor(100);
     doc.text(`Generated: ${getCurrentTimeIST()}`, 14, 25);
     doc.text(`Total Records: ${logs.length}`, 14, 32);
-    doc.text(`Timezone: Asia/Kolkata (IST)`, 14, 39);
 
     // Prepare table data with IST formatted timestamps
     const tableData = logs.map((log) => [
@@ -155,13 +154,13 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
       formatTimestampIST(log.createdAt),
     ]);
 
-    const headers = ['Log ID', 'User ID', 'Name', 'Email', 'Status', 'Note', 'Timestamp (IST)'];
+    const headers = ['Log ID', 'User ID', 'Name', 'Email', 'Status', 'Note', 'Timestamp'];
 
     // Add table using autoTable
     autoTable(doc, {
       head: [headers],
       body: tableData,
-      startY: 45,
+      startY: 40,
       theme: 'grid',
       margin: 10,
       styles: {
@@ -209,7 +208,7 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
         const pageWidth = pageSize.width;
         const pageCount = (doc as any).internal.pages.length - 1;
 
-        // Add footer with page numbers and timezone info
+        // Add footer with page numbers
         doc.setFontSize(8);
         doc.setTextColor(150);
         doc.text(
@@ -217,12 +216,6 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
           pageWidth / 2,
           pageHeight - 10,
           { align: 'center' }
-        );
-        doc.text(
-          'All times displayed in India Standard Time (IST - UTC+5:30)',
-          pageWidth / 2,
-          pageHeight - 6,
-          { align: 'center', fontSize: 7 }
         );
       },
     });
@@ -240,7 +233,7 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
     }
 
     const buffer = Buffer.from(pdfBuffer);
-    console.log(`✅ PDF export successful: ${buffer.length} bytes, ${logs.length} records in IST`);
+    console.log(`✅ PDF export successful: ${buffer.length} bytes, ${logs.length} records`);
     return buffer;
   } catch (error: any) {
     console.error('❌ PDF export error details:');

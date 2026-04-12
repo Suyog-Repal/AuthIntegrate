@@ -6,11 +6,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Converts a UTC timestamp to IST (Indian Standard Time, UTC+5:30)
+ * Converts a UTC timestamp to Mumbai timezone (IST, UTC+5:30)
  * and formats it as a relative time string (e.g., "1 sec ago", "5 mins ago")
  * 
  * @param timestamp - The timestamp to format (string or Date)
- * @returns Relative time string with IST consideration
+ * @returns Relative time string with Mumbai timezone consideration
  */
 export function formatRelativeTimeIST(timestamp: string | Date): string {
   try {
@@ -64,17 +64,18 @@ export function formatRelativeTimeIST(timestamp: string | Date): string {
 }
 
 /**
- * Formats a timestamp to IST date and time (absolute format)
- * Format: "MMM dd, yyyy HH:mm:ss IST" (e.g., "Apr 08, 2026 15:30:45 IST")
+ * Formats a timestamp to Mumbai timezone date and time (absolute format)
+ * Format: "MMM dd, yyyy HH:mm:ss" (e.g., "Apr 08, 2026 15:30:45")
+ * All times are in Mumbai timezone (UTC+5:30)
  * 
  * @param timestamp - The timestamp to format (string or Date)
- * @returns Formatted date-time string in IST
+ * @returns Formatted date-time string in Mumbai timezone
  */
 export function formatAbsoluteTimeIST(timestamp: string | Date): string {
   try {
     const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
 
-    // Format: MMM dd, yyyy HH:mm:ss IST
+    // Format: MMM dd, yyyy HH:mm:ss (Mumbai timezone)
     const options: Intl.DateTimeFormatOptions = {
       month: "short",
       day: "2-digit",
@@ -83,10 +84,10 @@ export function formatAbsoluteTimeIST(timestamp: string | Date): string {
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
-      timeZone: "Asia/Kolkata", // Directly use Asia/Kolkata timezone
+      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
     };
 
-    // Use toLocaleString with Asia/Kolkata timezone
+    // Use toLocaleString with Mumbai timezone
     return date.toLocaleString("en-US", options) + " IST";
   } catch (error) {
     console.error("Error formatting absolute time:", error);
@@ -95,11 +96,12 @@ export function formatAbsoluteTimeIST(timestamp: string | Date): string {
 }
 
 /**
- * Formats a timestamp to IST date and time for export (Excel/PDF)
- * Format: "dd MMM yyyy, HH:mm:ss IST" (e.g., "08 Apr 2026, 15:30:45 IST")
+ * Formats a timestamp to Mumbai timezone date and time for export (Excel/PDF)
+ * Format: "dd MMM yyyy, HH:mm:ss" (e.g., "08 Apr 2026, 15:30:45")
+ * All times are in Mumbai timezone (UTC+5:30)
  * 
  * @param timestamp - The timestamp to format (string or Date)
- * @returns Formatted date-time string in IST for exports
+ * @returns Formatted date-time string in Mumbai timezone for exports
  */
 export function formatTimestampForExport(timestamp: string | Date): string {
   try {
@@ -113,7 +115,7 @@ export function formatTimestampForExport(timestamp: string | Date): string {
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
-      timeZone: "Asia/Kolkata",
+      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
     };
 
     return date.toLocaleString("en-US", options) + " IST";
@@ -124,10 +126,11 @@ export function formatTimestampForExport(timestamp: string | Date): string {
 }
 
 /**
- * Formats current date/time to IST (used for generated timestamps in exports)
- * Format: "dd MMM yyyy, HH:mm:ss IST"
+ * Formats current date/time to Mumbai timezone (used for generated timestamps in exports)
+ * Format: "dd MMM yyyy, HH:mm:ss"
+ * All times are in Mumbai timezone (UTC+5:30)
  * 
- * @returns Current date-time string in IST for exports
+ * @returns Current date-time string in Mumbai timezone for exports
  */
 export function getCurrentTimeIST(): string {
   try {
@@ -140,7 +143,7 @@ export function getCurrentTimeIST(): string {
       minute: "2-digit",
       second: "2-digit",
       hour12: false,
-      timeZone: "Asia/Kolkata",
+      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
     };
 
     return now.toLocaleString("en-US", options) + " IST";
