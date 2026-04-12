@@ -13,6 +13,58 @@ interface LogEntry {
   createdAt: string;
 }
 
+/**
+ * Formats a timestamp to IST (Indian Standard Time) for exports
+ * @param timestamp - The timestamp to format
+ * @returns Formatted date-time string in IST
+ */
+function formatTimestampIST(timestamp: string | Date): string {
+  try {
+    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    
+    const options: Intl.DateTimeFormatOptions = {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Kolkata",
+    };
+
+    return date.toLocaleString("en-US", options) + " IST";
+  } catch (error) {
+    console.error("Error formatting timestamp to IST:", error);
+    return new Date(timestamp).toLocaleString();
+  }
+}
+
+/**
+ * Gets current time in IST format
+ * @returns Current date-time string in IST
+ */
+function getCurrentTimeIST(): string {
+  try {
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Kolkata",
+    };
+
+    return now.toLocaleString("en-US", options) + " IST";
+  } catch (error) {
+    console.error("Error getting current time in IST:", error);
+    return new Date().toLocaleString();
+  }
+}
+
 export async function exportLogsToExcel(logs: LogEntry[], filename: string = `logs_${new Date().toISOString().split('T')[0]}.xlsx`): Promise<Buffer> {
   try {
     if (!logs || logs.length === 0) {
@@ -27,7 +79,7 @@ export async function exportLogsToExcel(logs: LogEntry[], filename: string = `lo
       'Email': log.email || 'N/A',
       'Status': log.result,
       'Note': log.note || '-',
-      'Timestamp': new Date(log.createdAt).toLocaleString(),
+      'Timestamp': formatTimestampIST(log.createdAt),
     }));
 
     // Create workbook
@@ -43,7 +95,7 @@ export async function exportLogsToExcel(logs: LogEntry[], filename: string = `lo
       { wch: 25 }, // Email
       { wch: 12 }, // Status
       { wch: 20 }, // Note
-      { wch: 20 }, // Timestamp
+      { wch: 25 }, // Timestamp (wider for IST format)
     ];
     worksheet['!cols'] = wscols;
 
@@ -85,13 +137,14 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
     doc.setFontSize(16);
     doc.text('AuthIntegrate - Access Logs Report', 14, 15);
 
-    // Add metadata
+    // Add metadata with IST timestamp
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 25);
+    doc.text(`Generated: ${getCurrentTimeIST()}`, 14, 25);
     doc.text(`Total Records: ${logs.length}`, 14, 32);
+    doc.text(`Timezone: Asia/Kolkata (IST)`, 14, 39);
 
-    // Prepare table data
+    // Prepare table data with IST formatted timestamps
     const tableData = logs.map((log) => [
       log.id.toString(),
       log.userId.toString(),
@@ -99,20 +152,20 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
       log.email || 'N/A',
       log.result,
       log.note || '-',
-      new Date(log.createdAt).toLocaleString(),
+      formatTimestampIST(log.createdAt),
     ]);
 
-    const headers = ['Log ID', 'User ID', 'Name', 'Email', 'Status', 'Note', 'Timestamp'];
+    const headers = ['Log ID', 'User ID', 'Name', 'Email', 'Status', 'Note', 'Timestamp (IST)'];
 
     // Add table using autoTable
     autoTable(doc, {
       head: [headers],
       body: tableData,
-      startY: 40,
+      startY: 45,
       theme: 'grid',
       margin: 10,
       styles: {
-        fontSize: 9,
+        fontSize: 8,
         cellPadding: 3,
         overflow: 'linebreak',
         halign: 'left',
@@ -141,7 +194,7 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
           '',
           '',
           `Total: ${logs.length}`,
-          new Date().toLocaleString(),
+          getCurrentTimeIST(),
         ],
       ],
       footStyles: {
@@ -156,7 +209,7 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
         const pageWidth = pageSize.width;
         const pageCount = (doc as any).internal.pages.length - 1;
 
-        // Add footer with page numbers
+        // Add footer with page numbers and timezone info
         doc.setFontSize(8);
         doc.setTextColor(150);
         doc.text(
@@ -164,6 +217,12 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
           pageWidth / 2,
           pageHeight - 10,
           { align: 'center' }
+        );
+        doc.text(
+          'All times displayed in India Standard Time (IST - UTC+5:30)',
+          pageWidth / 2,
+          pageHeight - 6,
+          { align: 'center', fontSize: 7 }
         );
       },
     });
@@ -181,7 +240,7 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
     }
 
     const buffer = Buffer.from(pdfBuffer);
-    console.log(`✅ PDF export successful: ${buffer.length} bytes, ${logs.length} records`);
+    console.log(`✅ PDF export successful: ${buffer.length} bytes, ${logs.length} records in IST`);
     return buffer;
   } catch (error: any) {
     console.error('❌ PDF export error details:');

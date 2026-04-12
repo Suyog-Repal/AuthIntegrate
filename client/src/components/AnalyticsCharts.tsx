@@ -16,21 +16,69 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { AccessLogWithUser } from "@shared/schema";
-import { format, subDays, startOfDay } from "date-fns";
 
 interface AnalyticsChartsProps {
   logs: AccessLogWithUser[];
 }
 
+/**
+ * Converts a UTC date to IST date for comparison
+ */
+function getISTDate(utcDate: Date): Date {
+  const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+  return new Date(utcDate.getTime() + istOffset);
+}
+
+/**
+ * Gets the start of day in IST
+ */
+function getStartOfDayIST(date: Date): number {
+  const istDate = getISTDate(date);
+  const year = istDate.getUTCFullYear();
+  const month = istDate.getUTCMonth();
+  const day = istDate.getUTCDate();
+  const startOfDay = new Date(Date.UTC(year, month, day));
+  return startOfDay.getTime();
+}
+
+/**
+ * Gets a date N days ago in IST
+ */
+function getDateNDaysAgoIST(daysAgo: number): number {
+  const now = new Date();
+  const istDate = getISTDate(now);
+  const year = istDate.getUTCFullYear();
+  const month = istDate.getUTCMonth();
+  const day = istDate.getUTCDate();
+  
+  const targetDate = new Date(Date.UTC(year, month, day - daysAgo));
+  return targetDate.getTime();
+}
+
+/**
+ * Formats a date in IST for display
+ */
+function formatDateIST(timestamp: number): string {
+  const date = new Date(timestamp);
+  const options: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "2-digit",
+    timeZone: "Asia/Kolkata",
+  };
+  return date.toLocaleString("en-US", options);
+}
+
 export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
-  // Prepare data for trend chart (last 7 days)
+  // Prepare data for trend chart (last 7 days in IST)
   const trendData = Array.from({ length: 7 }, (_, i) => {
-    const date = startOfDay(subDays(new Date(), 6 - i));
-    const dayLogs = logs.filter(
-      (log) => startOfDay(new Date(log.createdAt)).getTime() === date.getTime()
-    );
+    const dateTimestamp = getDateNDaysAgoIST(6 - i);
+    const dayLogs = logs.filter((log) => {
+      const logDayTimestamp = getStartOfDayIST(new Date(log.createdAt));
+      return logDayTimestamp === dateTimestamp;
+    });
+
     return {
-      date: format(date, "MMM dd"),
+      date: formatDateIST(dateTimestamp),
       granted: dayLogs.filter((l) => l.result === "GRANTED").length,
       denied: dayLogs.filter((l) => l.result === "DENIED").length,
       registered: dayLogs.filter((l) => l.result === "REGISTERED").length,
@@ -61,7 +109,7 @@ export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
       <Card>
         <CardHeader>
           <CardTitle>Access Trend (Last 7 Days)</CardTitle>
-          <CardDescription>Daily access attempts breakdown</CardDescription>
+          <CardDescription>Daily access attempts breakdown (IST - UTC+5:30)</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -138,7 +186,7 @@ export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle>Daily Access Rate</CardTitle>
-          <CardDescription>Comparison of granted vs denied access</CardDescription>
+          <CardDescription>Comparison of granted vs denied access (dates in IST)</CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>

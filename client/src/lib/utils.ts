@@ -74,10 +74,6 @@ export function formatAbsoluteTimeIST(timestamp: string | Date): string {
   try {
     const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
 
-    // Convert to IST
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    const istDate = new Date(date.getTime() + istOffset);
-
     // Format: MMM dd, yyyy HH:mm:ss IST
     const options: Intl.DateTimeFormatOptions = {
       month: "short",
@@ -90,13 +86,66 @@ export function formatAbsoluteTimeIST(timestamp: string | Date): string {
       timeZone: "Asia/Kolkata", // Directly use Asia/Kolkata timezone
     };
 
-    // Use a more direct approach with toLocaleString
-    return istDate.toLocaleString("en-US", {
-      ...options,
-      timeZone: "Asia/Kolkata",
-    }) + " IST";
+    // Use toLocaleString with Asia/Kolkata timezone
+    return date.toLocaleString("en-US", options) + " IST";
   } catch (error) {
     console.error("Error formatting absolute time:", error);
+    return "unknown time";
+  }
+}
+
+/**
+ * Formats a timestamp to IST date and time for export (Excel/PDF)
+ * Format: "dd MMM yyyy, HH:mm:ss IST" (e.g., "08 Apr 2026, 15:30:45 IST")
+ * 
+ * @param timestamp - The timestamp to format (string or Date)
+ * @returns Formatted date-time string in IST for exports
+ */
+export function formatTimestampForExport(timestamp: string | Date): string {
+  try {
+    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+
+    const options: Intl.DateTimeFormatOptions = {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Kolkata",
+    };
+
+    return date.toLocaleString("en-US", options) + " IST";
+  } catch (error) {
+    console.error("Error formatting timestamp for export:", error);
+    return "unknown time";
+  }
+}
+
+/**
+ * Formats current date/time to IST (used for generated timestamps in exports)
+ * Format: "dd MMM yyyy, HH:mm:ss IST"
+ * 
+ * @returns Current date-time string in IST for exports
+ */
+export function getCurrentTimeIST(): string {
+  try {
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Kolkata",
+    };
+
+    return now.toLocaleString("en-US", options) + " IST";
+  } catch (error) {
+    console.error("Error getting current time in IST:", error);
     return "unknown time";
   }
 }
