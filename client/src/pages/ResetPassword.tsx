@@ -12,8 +12,8 @@ import { z } from "zod";
 
 const resetPasswordSchema = z
   .object({
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(6, "Password confirmation is required"),
+    password: z.string().regex(/^\d{6}$/, "Password must be exactly 6 digits (numbers only)"),
+    confirmPassword: z.string().regex(/^\d{6}$/, "Password must be exactly 6 digits (numbers only)"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -194,32 +194,37 @@ export default function ResetPassword() {
               <Lock className="w-6 h-6 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+          <CardTitle className="text-2xl font-bold">Reset PIN</CardTitle>
           <CardDescription>
-            Enter your new password below
+            Enter your new 6-digit numeric PIN
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password">New PIN (6 digits)</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter new password"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
                 {...register("password")}
               />
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
+              <p className="text-xs text-muted-foreground">Must be exactly 6 numbers (0-9)</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirm PIN (6 digits)</Label>
               <Input
                 id="confirmPassword"
                 type="password"
-                placeholder="Confirm new password"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
                 {...register("confirmPassword")}
               />
               {errors.confirmPassword && (
@@ -238,7 +243,7 @@ export default function ResetPassword() {
                   Resetting...
                 </>
               ) : (
-                "Reset Password"
+                "Reset PIN"
               )}
             </Button>
 

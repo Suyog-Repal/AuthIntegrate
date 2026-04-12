@@ -36,8 +36,8 @@ const forgotPasswordSchema = z.object({
 
 const resetPasswordSchema = z.object({
   token: z.string().min(1, "Reset token is required"),
-  newPassword: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(6, "Password confirmation is required"),
+  newPassword: z.string().regex(/^\d{6}$/, "Password must be exactly 6 digits (numbers only)"),
+  confirmPassword: z.string().regex(/^\d{6}$/, "Password confirmation must be exactly 6 digits (numbers only)"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
