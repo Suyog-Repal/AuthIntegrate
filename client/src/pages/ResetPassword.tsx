@@ -54,6 +54,9 @@ export default function ResetPassword() {
     const params = new URLSearchParams(window.location.search);
     const tokenParam = params.get("token");
     
+    console.log("🔗 Current URL:", window.location.href);
+    console.log("📋 Extracted token from URL:", tokenParam ? `${tokenParam.substring(0, 16)}... (first 16 chars)` : "NOT FOUND");
+    
     if (!tokenParam) {
       setTokenValid(false);
       toast({
@@ -78,6 +81,10 @@ export default function ResetPassword() {
       return;
     }
 
+    console.log("📤 Sending password reset request:");
+    console.log(`   Token: ${token.substring(0, 16)}... (first 16 chars)`);
+    console.log(`   New Password: ${data.password}`);
+
     setIsResetting(true);
     try {
       const response = await fetch("/api/auth/reset-password", {
@@ -94,9 +101,11 @@ export default function ResetPassword() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("❌ Reset failed:", errorData);
         throw new Error(errorData.message || "Failed to reset password");
       }
 
+      console.log("✅ Password reset successful");
       setResetSuccess(true);
       toast({
         title: "Success",

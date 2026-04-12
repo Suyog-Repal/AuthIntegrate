@@ -180,6 +180,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Save token with 15 minute expiry
       await storage.saveResetToken(profile.user_id, resetToken, 15);
+      
+      console.log(`✅ Password reset token generated and saved for user ${profile.user_id} (${email})`);
+      console.log(`   Token: ${resetToken.substring(0, 16)}... (first 16 chars)`);
 
       // Construct reset link using FRONTEND_URL (not backend API URL)
       // CRITICAL: This should point to frontend, not localhost:5000
@@ -194,6 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+      console.log(`   Reset link: ${resetLink}`);
 
       // Send reset email
       await sendPasswordResetEmail({
@@ -216,12 +220,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/reset-password", async (req, res) => {
     try {
       const { token, newPassword } = resetPasswordSchema.parse(req.body);
+      
+      console.log(`🔍 Attempting to reset password with token: ${token.substring(0, 16)}... (first 16 chars)`);
 
       // Verify token and get user
       const profile = await storage.getUserByResetToken(token);
+      
       if (!profile) {
+        console.error(`❌ Reset token validation failed for token: ${token.substring(0, 16)}...`);
+        console.error(`   Token may be invalid, expired, or mismatched in database`);
         return res.status(400).json({ message: "Invalid or expired reset token" });
       }
+      
+      console.log(`✅ Token validated successfully for user: ${profile.user_id}`);
 
       // Hash new password
       const passwordHash = await bcrypt.hash(newPassword, 10);
@@ -229,6 +240,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update password and clear reset token
       await storage.updatePassword(profile.user_id, passwordHash);
       await storage.clearResetToken(profile.user_id);
+      
+      console.log(`✅ Password reset complete for user: ${profile.user_id}`);
 
       res.json({ message: "Password reset successful" });
     } catch (error: any) {

@@ -257,25 +257,58 @@ class DatabaseStorage {
   // ==================== PASSWORD RESET METHODS ====================
   async saveResetToken(userId: number, token: string, expiryMinutes: number = 15): Promise<void> {
     const expiryTime = new Date(Date.now() + expiryMinutes * 60 * 1000);
+    console.log(`💾 Saving reset token for user ${userId}, expires at: ${expiryTime.toISOString()}`);
+    
     await db.query(
       `UPDATE user_profiles SET reset_token = ?, reset_token_expiry = ? WHERE user_id = ?`,
       [token, expiryTime, userId]
     );
+    
+    console.log(`   ✅ Token saved successfully`);
   }
 
   async getUserByResetToken(token: string): Promise<any | null> {
+    console.log(`🔎 Querying database for reset token: ${token.substring(0, 16)}...`);
+    
     const [rows]: any = await db.query(
       `SELECT * FROM user_profiles WHERE reset_token = ? AND reset_token_expiry > NOW()`,
       [token]
     );
-    return rows[0] || null;
+    
+    if (rows && rows.length > 0) {
+      console.log(`   ✅ Token found! User ID: ${rows[0].user_id}`);
+      return rows[0];
+    } else {
+      console.log(`   ❌ Token not found or expired`);
+      
+      // Debug: Check if token exists at all (even if expired)
+      const [allRows]: any = await db.query(
+        `SELECT user_id, reset_token, reset_token_expiry FROM user_profiles WHERE reset_token = ?`,
+        [token]
+      );
+      
+      if (allRows && allRows.length > 0) {
+        const existingRow = allRows[0];
+        console.log(`   📌 Token exists in DB but is expired:`);
+        console.log(`      Expiry time: ${existingRow.reset_token_expiry}`);
+        console.log(`      Current time: ${new Date().toISOString()}`);
+      } else {
+        console.log(`   📌 Token does not exist in database at all`);
+      }
+      
+      return null;
+    }
   }
 
   async clearResetToken(userId: number): Promise<void> {
+    console.log(`🗑️  Clearing reset token for user ${userId}`);
+    
     await db.query(
       `UPDATE user_profiles SET reset_token = NULL, reset_token_expiry = NULL WHERE user_id = ?`,
       [userId]
     );
+    
+    console.log(`   ✅ Token cleared successfully`);
   }
 
   async updatePassword(userId: number, passwordHash: string): Promise<void> {
