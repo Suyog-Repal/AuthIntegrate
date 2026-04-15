@@ -41,28 +41,21 @@ function getISTDateForFilename(): string {
  * @param timestamp - The timestamp to format (string or Date)
  * @returns Formatted date-time string in Mumbai timezone (UTC+5:30)
  */
-function formatTimestampIST(timestamp: string | Date): string {
-  try {
-    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
-    
-    // ✅ CRITICAL: Format already-IST timestamp for display
-    // No timezone offset applied - just formatting for readability
-    const options: Intl.DateTimeFormatOptions = {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
-    };
-
-    return date.toLocaleString("en-US", options) + " IST";
-  } catch (error) {
-    console.error("Error formatting timestamp to IST:", error);
-    return new Date(timestamp).toLocaleString();
+function formatTimestampIST(timestamp: string | Date | undefined): string {
+  if (!timestamp) return "N/A";
+  const t = String(timestamp);
+  // Match standard MySQL output: YYYY-MM-DD HH:MM:SS or ISO string
+  const match = t.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+  if (match) {
+    const [_, yyyy, mm, dd, H, M] = match;
+    let hours = parseInt(H, 10);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // 0 should be 12
+    const hStr = hours < 10 ? '0' + hours : hours;
+    return `${dd}/${mm}/${yyyy}, ${hStr}:${M} ${ampm}`;
   }
+  return t; // Fallback
 }
 
 /**
@@ -104,7 +97,7 @@ export async function exportLogsToExcel(logs: LogEntry[], filename: string = `lo
       'Email': log.email || 'N/A',
       'Status': log.result,
       'Note': log.note || '-',
-      'Timestamp': formatTimestampIST(log.createdAt),
+      'Timestamp': formatTimestampIST(log.createdAt || log.created_at_ist),
     }));
 
     // Create workbook
@@ -176,7 +169,7 @@ export async function exportLogsToPDF(logs: LogEntry[], filename: string = `logs
       log.email || 'N/A',
       log.result,
       log.note || '-',
-      formatTimestampIST(log.createdAt),
+      formatTimestampIST(log.createdAt || log.created_at_ist),
     ]);
 
     const headers = ['Log ID', 'User ID', 'Name', 'Email', 'Status', 'Note', 'Timestamp'];

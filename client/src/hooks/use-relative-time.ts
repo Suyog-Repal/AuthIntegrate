@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatRelativeTimeIST } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 
 /**
  * Hook to provide auto-updating relative time in Mumbai timezone
@@ -10,11 +10,11 @@ export function useRelativeTimeIST(timestamp: string | Date) {
 
   useEffect(() => {
     // Set initial value
-    setRelativeTime(formatRelativeTimeIST(timestamp));
+    setRelativeTime(timeAgo(timestamp));
 
     // Update every second to keep the relative time current
     const interval = setInterval(() => {
-      setRelativeTime(formatRelativeTimeIST(timestamp));
+      setRelativeTime(timeAgo(timestamp));
     }, 1000);
 
     return () => clearInterval(interval);

@@ -66,7 +66,7 @@ export function LogsTable({ logs, isLoading }: LogsTableProps) {
               <TableCell className="text-sm text-muted-foreground">
                 {/* Display relative time with hover tooltip showing absolute time in IST */}
                 <span title={formatAbsoluteTimeIST(log.createdAt)}>
-                  <RelativeTimeDisplay timestamp={log.createdAt} />
+                  <RelativeTimeDisplay timestamp={log.created_at_ist || log.createdAt} />
                 </span>
               </TableCell>
             </TableRow>

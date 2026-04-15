@@ -109,8 +109,8 @@ class DatabaseStorage {
   }
   async createAccessLog(data: { userId: number; result: string; note?: string }) {
     await db.query(
-      `INSERT INTO access_logs (user_id, result, note, created_at)
-       VALUES (?, ?, ?, NOW())`,
+      `INSERT INTO access_logs (user_id, result, note)
+       VALUES (?, ?, ?)`,
       [data.userId, data.result, data.note || null]
     );
   }
@@ -121,7 +121,7 @@ class DatabaseStorage {
            l.user_id AS userId,
            l.result,
            l.note,
-           CONVERT_TZ(l.created_at, '+00:00', '+05:30') AS createdAt,
+           CONVERT_TZ(l.created_at, '+00:00', '+05:30') AS created_at_ist,
            p.email,
            p.mobile,
            p.name AS name
@@ -142,7 +142,7 @@ class DatabaseStorage {
            l.user_id AS userId,
            l.result,
            l.note,
-           CONVERT_TZ(l.created_at, '+00:00', '+05:30') AS createdAt,
+           CONVERT_TZ(l.created_at, '+00:00', '+05:30') AS created_at_ist,
            p.email,
            p.mobile,
            p.name AS name
@@ -175,7 +175,7 @@ class DatabaseStorage {
         l.user_id AS userId,
         l.result,
         l.note,
-        CONVERT_TZ(l.created_at, '+00:00', '+05:30') AS createdAt,
+        CONVERT_TZ(l.created_at, '+00:00', '+05:30') AS created_at_ist,
         p.email,
         p.mobile,
         p.name

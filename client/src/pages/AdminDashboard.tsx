@@ -176,7 +176,11 @@ export default function AdminDashboard() {
   ].filter(
     (log, index, self) => index === self.findIndex((l) => l.id === log.id)
   )
-  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) 
+  .sort((a, b) => {
+    const timeA = String(a.created_at_ist || a.createdAt);
+    const timeB = String(b.created_at_ist || b.createdAt);
+    return timeB.localeCompare(timeA);
+  })
   .slice(0, 50); 
 
   // Safe, accurate success rate calculator

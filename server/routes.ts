@@ -547,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("   Log ID:", logWithUser[0].id);
         console.log("   User ID:", logWithUser[0].userId);
         console.log("   Status:", logWithUser[0].result);
-        console.log("   Created At (IST):", logWithUser[0].createdAt);
+        console.log("   Created At (IST):", logWithUser[0].created_at_ist);
         console.log("   User Name:", logWithUser[0].name);
         
         // 🔥 REAL-TIME EMIT

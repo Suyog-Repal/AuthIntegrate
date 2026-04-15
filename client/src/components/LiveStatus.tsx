@@ -15,6 +15,7 @@ interface CustomAccessLog extends AccessLogWithUser {
   email?: string;
   mobile?: string;
   name?: string; // Explicitly define the name field
+  created_at_ist?: string | Date;
 }
 
 interface LiveStatusProps {
@@ -89,7 +90,8 @@ justify-between gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-3">
                         <StatusBadge status={log.result} />
-                        <RelativeTimeDisplay timestamp={log.createdAt} />
+                        {(() => { console.log("Timestamp received:", log.created_at_ist || log.createdAt); return null; })()}
+                        <RelativeTimeDisplay timestamp={log.created_at_ist || log.createdAt} />
                       </div>
                       
                       <div className="space-y-1">

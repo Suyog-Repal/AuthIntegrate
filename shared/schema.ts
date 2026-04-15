@@ -102,6 +102,7 @@ export type AccessLogWithUser = AccessLog & {
   name?: string;
   email?: string;
   mobile?: string;
+  created_at_ist?: string | Date;
 };
 export type SystemStats = {
   totalUsers: number;
