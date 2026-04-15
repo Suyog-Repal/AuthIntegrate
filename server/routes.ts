@@ -542,6 +542,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch the MOST recent log with profile data
       const logWithUser = await storage.getRecentAccessLogs(1);
       if (logWithUser && logWithUser.length > 0) {
+        // 🔥 DEBUG: Log the timestamp being sent to frontend
+        console.log("📡 Emitting real-time log to frontend:");
+        console.log("   Log ID:", logWithUser[0].id);
+        console.log("   User ID:", logWithUser[0].userId);
+        console.log("   Status:", logWithUser[0].result);
+        console.log("   Created At (IST):", logWithUser[0].createdAt);
+        console.log("   User Name:", logWithUser[0].name);
+        
         // 🔥 REAL-TIME EMIT
         io.emit("new-log", logWithUser[0]);
       }

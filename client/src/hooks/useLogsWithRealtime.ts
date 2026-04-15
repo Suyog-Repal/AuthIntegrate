@@ -67,13 +67,21 @@ export function useLogsWithRealtime(filters?: LogFilters) {
     });
 
     newSocket.on('new-log', (newLog: AccessLogWithUser) => {
-      console.log('📝 New log received:', newLog);
+      console.log('📝 New log received from backend:');
+      console.log('   ID:', newLog.id);
+      console.log('   User ID:', newLog.userId);
+      console.log('   Status:', newLog.result);
+      console.log('   Created At (from backend):', newLog.createdAt);
+      console.log('   User Name:', newLog.name);
+      
       setLogs((prev) => {
         // Avoid duplicates
         if (prev.some((l) => l.id === newLog.id)) {
+          console.warn('⚠️ Duplicate log detected, skipping');
           return prev;
         }
         // Add new log to the beginning
+        console.log('✅ Adding new log to UI');
         return [newLog, ...prev].slice(0, 100); // Keep only last 100
       });
     });

@@ -7,44 +7,68 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Calculates relative time between a given timestamp and now in Mumbai timezone (IST)
- * Backend sends IST timestamps in MySQL format (YYYY-MM-DD HH:MM:SS), not ISO format
- * This ensures we don't apply conflicting timezone conversions
+ * Handles multiple timestamp formats robustly
  * 
- * @param timestamp - The timestamp to format (string or Date) - should be IST from backend
+ * @param timestamp - The timestamp (string or Date) from backend
  * @returns Relative time string (e.g., "1 sec ago", "5 mins ago")
  */
 export function formatRelativeTimeIST(timestamp: string | Date): string {
   try {
-    // ✅ CRITICAL: Parse IST timestamp correctly
-    // Backend sends MySQL datetime format: "2026-04-15 10:30:00" (already IST)
-    // JavaScript Date() will parse this as local time, which is correct
-    // DO NOT apply any timezone offset
-    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    // ✅ Parse timestamp robustly, handling multiple formats
+    let date: Date;
     
-    // ✅ CRITICAL: Get current time in IST for comparison
-    // Use same logic as backend: convert NOW() to IST for accurate comparison
+    if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === "string") {
+      // ✅ CRITICAL FIX: Parse MySQL datetime format correctly
+      // Format: "2026-04-15 15:30:45" (IST from CONVERT_TZ)
+      // Replace space with 'T' to create ISO-like format for reliable parsing
+      const isoFormat = timestamp.replace(" ", "T");
+      date = new Date(isoFormat);
+      
+      // Fallback: if ISO parsing fails, try direct parsing
+      if (isNaN(date.getTime())) {
+        date = new Date(timestamp);
+      }
+      
+      // Last resort: try to parse manually
+      if (isNaN(date.getTime())) {
+        const parts = timestamp.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+        if (parts) {
+          date = new Date(
+            parseInt(parts[1]),
+            parseInt(parts[2]) - 1,
+            parseInt(parts[3]),
+            parseInt(parts[4]),
+            parseInt(parts[5]),
+            parseInt(parts[6])
+          );
+        } else {
+          throw new Error("Invalid timestamp format");
+        }
+      }
+    } else {
+      throw new Error("Invalid timestamp type");
+    }
+    
+    // ✅ Validate date was parsed correctly
+    if (isNaN(date.getTime())) {
+      console.error("Failed to parse timestamp:", timestamp);
+      return "unknown time";
+    }
+    
+    // ✅ Get current time
     const now = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Kolkata", // IST
-    };
-    const nowIST = now.toLocaleString("en-CA", options); // "YYYY-MM-DD HH:MM:SS"
-    const nowISTDate = new Date(nowIST);
-
-    // Calculate difference using IST-aware timestamps
-    const diffMs = nowISTDate.getTime() - date.getTime();
-
-    // Handle edge cases
+    
+    // ✅ Calculate difference in seconds
+    // This works correctly because both dates are in the same reference frame
+    const diffMs = now.getTime() - date.getTime();
+    
     if (diffMs < 0) {
+      // Future timestamp (shouldn't happen, but handle gracefully)
       return "just now";
     }
-
+    
     const diffSeconds = Math.floor(diffMs / 1000);
     const diffMinutes = Math.floor(diffSeconds / 60);
     const diffHours = Math.floor(diffMinutes / 60);
@@ -90,7 +114,48 @@ export function formatRelativeTimeIST(timestamp: string | Date): string {
  */
 export function formatAbsoluteTimeIST(timestamp: string | Date): string {
   try {
-    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    // ✅ Parse timestamp robustly, handling multiple formats
+    let date: Date;
+    
+    if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === "string") {
+      // ✅ CRITICAL FIX: Parse MySQL datetime format correctly
+      // Format: "2026-04-15 15:30:45" (IST from CONVERT_TZ)
+      // Replace space with 'T' to create ISO-like format for reliable parsing
+      const isoFormat = timestamp.replace(" ", "T");
+      date = new Date(isoFormat);
+      
+      // Fallback: if ISO parsing fails, try direct parsing
+      if (isNaN(date.getTime())) {
+        date = new Date(timestamp);
+      }
+      
+      // Last resort: try to parse manually
+      if (isNaN(date.getTime())) {
+        const parts = timestamp.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+        if (parts) {
+          date = new Date(
+            parseInt(parts[1]),
+            parseInt(parts[2]) - 1,
+            parseInt(parts[3]),
+            parseInt(parts[4]),
+            parseInt(parts[5]),
+            parseInt(parts[6])
+          );
+        } else {
+          throw new Error("Invalid timestamp format");
+        }
+      }
+    } else {
+      throw new Error("Invalid timestamp type");
+    }
+    
+    // ✅ Validate date was parsed correctly
+    if (isNaN(date.getTime())) {
+      console.error("Failed to parse absolute timestamp:", timestamp);
+      return "unknown time";
+    }
 
     // ✅ CRITICAL FIX: Since backend sends IST timestamps from MySQL,
     // we parse them as local time and format using Asia/Kolkata timezone
@@ -124,7 +189,48 @@ export function formatAbsoluteTimeIST(timestamp: string | Date): string {
  */
 export function formatTimestampForExport(timestamp: string | Date): string {
   try {
-    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    // ✅ Parse timestamp robustly, handling multiple formats
+    let date: Date;
+    
+    if (timestamp instanceof Date) {
+      date = timestamp;
+    } else if (typeof timestamp === "string") {
+      // ✅ CRITICAL FIX: Parse MySQL datetime format correctly
+      // Format: "2026-04-15 15:30:45" (IST from CONVERT_TZ)
+      // Replace space with 'T' to create ISO-like format for reliable parsing
+      const isoFormat = timestamp.replace(" ", "T");
+      date = new Date(isoFormat);
+      
+      // Fallback: if ISO parsing fails, try direct parsing
+      if (isNaN(date.getTime())) {
+        date = new Date(timestamp);
+      }
+      
+      // Last resort: try to parse manually
+      if (isNaN(date.getTime())) {
+        const parts = timestamp.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+        if (parts) {
+          date = new Date(
+            parseInt(parts[1]),
+            parseInt(parts[2]) - 1,
+            parseInt(parts[3]),
+            parseInt(parts[4]),
+            parseInt(parts[5]),
+            parseInt(parts[6])
+          );
+        } else {
+          throw new Error("Invalid timestamp format");
+        }
+      }
+    } else {
+      throw new Error("Invalid timestamp type");
+    }
+    
+    // ✅ Validate date was parsed correctly
+    if (isNaN(date.getTime())) {
+      console.error("Failed to parse export timestamp:", timestamp);
+      return "unknown time";
+    }
 
     const options: Intl.DateTimeFormatOptions = {
       day: "2-digit",
