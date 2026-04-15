@@ -23,7 +23,11 @@ export function formatRelativeTimeIST(timestamp: string | Date): string {
       // ✅ CRITICAL FIX: Parse MySQL datetime format correctly
       // Format: "2026-04-15 15:30:45" (IST from CONVERT_TZ)
       // Replace space with 'T' to create ISO-like format for reliable parsing
-      const isoFormat = timestamp.replace(" ", "T");
+      let isoFormat = timestamp.replace(" ", "T").replace(/Z$/, "");
+      // Append IST offset if it doesn't already have timezone info
+      if (!isoFormat.match(/(Z|[+-]\d{2}:\d{2})$/)) {
+        isoFormat += "+05:30";
+      }
       date = new Date(isoFormat);
       
       // Fallback: if ISO parsing fails, try direct parsing
@@ -123,7 +127,11 @@ export function formatAbsoluteTimeIST(timestamp: string | Date): string {
       // ✅ CRITICAL FIX: Parse MySQL datetime format correctly
       // Format: "2026-04-15 15:30:45" (IST from CONVERT_TZ)
       // Replace space with 'T' to create ISO-like format for reliable parsing
-      const isoFormat = timestamp.replace(" ", "T");
+      let isoFormat = timestamp.replace(" ", "T").replace(/Z$/, "");
+      // Append IST offset if it doesn't already have timezone info
+      if (!isoFormat.match(/(Z|[+-]\d{2}:\d{2})$/)) {
+        isoFormat += "+05:30";
+      }
       date = new Date(isoFormat);
       
       // Fallback: if ISO parsing fails, try direct parsing
@@ -198,7 +206,11 @@ export function formatTimestampForExport(timestamp: string | Date): string {
       // ✅ CRITICAL FIX: Parse MySQL datetime format correctly
       // Format: "2026-04-15 15:30:45" (IST from CONVERT_TZ)
       // Replace space with 'T' to create ISO-like format for reliable parsing
-      const isoFormat = timestamp.replace(" ", "T");
+      let isoFormat = timestamp.replace(" ", "T").replace(/Z$/, "");
+      // Append IST offset if it doesn't already have timezone info
+      if (!isoFormat.match(/(Z|[+-]\d{2}:\d{2})$/)) {
+        isoFormat += "+05:30";
+      }
       date = new Date(isoFormat);
       
       // Fallback: if ISO parsing fails, try direct parsing

@@ -7,8 +7,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatAbsoluteTimeIST, formatRelativeTimeIST } from "@/lib/utils";
+import { formatAbsoluteTimeIST } from "@/lib/utils";
+import { useRelativeTimeIST } from "@/hooks/use-relative-time";
 import type { AccessLogWithUser } from "@shared/schema";
+
+function RelativeTimeDisplay({ timestamp }: { timestamp: string | Date }) {
+  const relativeTime = useRelativeTimeIST(timestamp);
+  return <span>{relativeTime}</span>;
+}
 
 interface LogsTableProps {
   logs: AccessLogWithUser[];
@@ -60,7 +66,7 @@ export function LogsTable({ logs, isLoading }: LogsTableProps) {
               <TableCell className="text-sm text-muted-foreground">
                 {/* Display relative time with hover tooltip showing absolute time in IST */}
                 <span title={formatAbsoluteTimeIST(log.createdAt)}>
-                  {formatRelativeTimeIST(log.createdAt)}
+                  <RelativeTimeDisplay timestamp={log.createdAt} />
                 </span>
               </TableCell>
             </TableRow>

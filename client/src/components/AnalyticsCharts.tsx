@@ -30,7 +30,16 @@ interface AnalyticsChartsProps {
  */
 function getStartOfDayIST(timestamp: string | Date): number {
   try {
-    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    let date: Date;
+    if (typeof timestamp === "string") {
+      let isoFormat = timestamp.replace(" ", "T").replace(/Z$/, "");
+      if (!isoFormat.match(/(Z|[+-]\d{2}:\d{2})$/)) {
+        isoFormat += "+05:30";
+      }
+      date = new Date(isoFormat);
+    } else {
+      date = timestamp;
+    }
     
     // ✅ CRITICAL FIX: Format date in IST timezone first
     const options: Intl.DateTimeFormatOptions = {
