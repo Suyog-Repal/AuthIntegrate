@@ -23,53 +23,84 @@ interface AnalyticsChartsProps {
 
 /**
  * Gets the start of day in Mumbai timezone (IST)
- * Note: Backend already returns IST-converted timestamps, so we just parse them
+ * Backend sends timestamps already converted to IST: "YYYY-MM-DD HH:MM:SS"
+ * We extract just the date part and normalize to midnight for comparison
+ * 
+ * ✅ CRITICAL: Parse as IST date without applying additional timezone conversion
  */
-function getStartOfDayIST(timestamp: string): number {
-  // Parse the IST timestamp and get the start of day
-  const date = new Date(timestamp);
-  const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
-  };
-  const dateStr = date.toLocaleString("en-CA", options); // Returns YYYY-MM-DD
-  const startOfDay = new Date(dateStr);
-  return startOfDay.getTime();
+function getStartOfDayIST(timestamp: string | Date): number {
+  try {
+    const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    
+    // ✅ CRITICAL FIX: Format date in IST timezone first
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
+    };
+    const dateStr = date.toLocaleString("en-CA", options); // Returns "YYYY-MM-DD"
+    
+    // Create new date from IST date string (treated as local time)
+    const startOfDay = new Date(dateStr);
+    return startOfDay.getTime();
+  } catch (error) {
+    console.error("Error getting start of day IST:", error);
+    return 0;
+  }
 }
 
 /**
  * Gets a date N days ago in Mumbai timezone
- * Note: Backend already returns IST-converted timestamps
+ * Respects IST date boundaries, not UTC boundaries
+ * 
+ * ✅ CRITICAL: All calculations use IST timezone
  */
 function getDateNDaysAgoIST(daysAgo: number): number {
-  const now = new Date();
-  const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
-  };
-  const today = now.toLocaleString("en-CA", options); // Returns YYYY-MM-DD
-  const todayDate = new Date(today);
-  const targetDate = new Date(todayDate.getTime() - daysAgo * 24 * 60 * 60 * 1000);
-  return targetDate.getTime();
+  try {
+    const now = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
+    };
+    const todayIST = now.toLocaleString("en-CA", options); // Returns "YYYY-MM-DD"
+    
+    // Parse today's IST date as local time
+    const todayDate = new Date(todayIST);
+    
+    // Calculate target date (subtract days)
+    const targetDate = new Date(todayDate.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+    
+    return targetDate.getTime();
+  } catch (error) {
+    console.error("Error getting date N days ago IST:", error);
+    return 0;
+  }
 }
 
 /**
  * Formats a date in Mumbai timezone for display
+ * Used for chart axis labels to show dates in IST
  */
 function formatDateIST(timestamp: number): string {
-  const date = new Date(timestamp);
-  const options: Intl.DateTimeFormatOptions = {
-    month: "short",
-    day: "2-digit",
-    timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
-  };
-  return date.toLocaleString("en-US", options);
-}
-
+  try {
+    const date = new Date(timestamp);
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "2-digit",
+      timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
+    };
+    return date.toLocaleString("en-US", options);
+  } catch (error) {
+    c✅ CRITICAL FIX: Prepare data for trend chart using IST-aware date calculations
+  // Backend returns timestamps already converted to IST, so we group by IST dates
+  const trendData = Array.from({ length: 7 }, (_, i) => {
+    const dateTimestamp = getDateNDaysAgoIST(6 - i);
+    const dayLogs = logs.filter((log) => {
+      // ✅ CRITICAL: Compare IST dates, not UTC dates
+      const logDayTimestamp = getStartOfDayIST(log.createdAt
 export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
   // Prepare data for trend chart (last 7 days in IST)
   const trendData = Array.from({ length: 7 }, (_, i) => {

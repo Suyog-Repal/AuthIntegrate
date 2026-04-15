@@ -7,21 +7,38 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Calculates relative time between a given timestamp and now in Mumbai timezone (IST)
- * Backend sends IST timestamps, so we calculate difference directly without offset
+ * Backend sends IST timestamps in MySQL format (YYYY-MM-DD HH:MM:SS), not ISO format
+ * This ensures we don't apply conflicting timezone conversions
  * 
  * @param timestamp - The timestamp to format (string or Date) - should be IST from backend
  * @returns Relative time string (e.g., "1 sec ago", "5 mins ago")
  */
 export function formatRelativeTimeIST(timestamp: string | Date): string {
   try {
-    // Parse the IST timestamp from the backend
+    // ✅ CRITICAL: Parse IST timestamp correctly
+    // Backend sends MySQL datetime format: "2026-04-15 10:30:00" (already IST)
+    // JavaScript Date() will parse this as local time, which is correct
+    // DO NOT apply any timezone offset
     const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
+    
+    // ✅ CRITICAL: Get current time in IST for comparison
+    // Use same logic as backend: convert NOW() to IST for accurate comparison
     const now = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Kolkata", // IST
+    };
+    const nowIST = now.toLocaleString("en-CA", options); // "YYYY-MM-DD HH:MM:SS"
+    const nowISTDate = new Date(nowIST);
 
-    // ✅ CRITICAL FIX: Backend sends IST timestamps, no offset needed
-    // Both timestamps are in the same timezone context (IST from backend, current system time)
-    // We calculate the difference directly
-    const diffMs = now.getTime() - date.getTime();
+    // Calculate difference using IST-aware timestamps
+    const diffMs = nowISTDate.getTime() - date.getTime();
 
     // Handle edge cases
     if (diffMs < 0) {
@@ -62,8 +79,11 @@ export function formatRelativeTimeIST(timestamp: string | Date): string {
 
 /**
  * Formats a timestamp to Mumbai timezone date and time (absolute format)
- * Format: "MMM dd, yyyy HH:mm:ss" (e.g., "Apr 08, 2026 15:30:45")
+ * Format: "dd MMM yyyy, HH:mm:ss" (e.g., "15 Apr 2026, 15:30:45")
  * All times are in Mumbai timezone (UTC+5:30)
+ * 
+ * ✅ CRITICAL: Backend sends timestamps already converted to IST by MySQL
+ * We DON'T apply additional timezone conversion - just format for display
  * 
  * @param timestamp - The timestamp to format (string or Date)
  * @returns Formatted date-time string in Mumbai timezone
@@ -72,10 +92,12 @@ export function formatAbsoluteTimeIST(timestamp: string | Date): string {
   try {
     const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
 
-    // Format: MMM dd, yyyy HH:mm:ss (Mumbai timezone)
+    // ✅ CRITICAL FIX: Since backend sends IST timestamps from MySQL,
+    // we parse them as local time and format using Asia/Kolkata timezone
+    // This ensures consistent display across browsers
     const options: Intl.DateTimeFormatOptions = {
-      month: "short",
       day: "2-digit",
+      month: "short",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
@@ -84,7 +106,7 @@ export function formatAbsoluteTimeIST(timestamp: string | Date): string {
       timeZone: "Asia/Kolkata", // Mumbai timezone (UTC+5:30)
     };
 
-    // Use toLocaleString with Mumbai timezone
+    // Use toLocaleString with Mumbai timezone for display
     return date.toLocaleString("en-US", options) + " IST";
   } catch (error) {
     console.error("Error formatting absolute time:", error);

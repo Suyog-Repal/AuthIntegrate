@@ -188,8 +188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if user exists
       const profile = await storage.getUserProfileByEmail(email);
       if (!profile) {
-        // Don't expose that email doesn't exist for security
-        return res.json({ message: "If an account exists with that email, a password reset link will be sent" });
+        // Return error indicating email doesn't exist in database
+        return res.status(404).json({ message: "This email address does not match with our database. Please enter the correct email address or register a new account." });
       }
 
       // Generate secure random token

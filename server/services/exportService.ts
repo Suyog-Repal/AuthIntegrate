@@ -1,4 +1,8 @@
 // 🔥 PHASE 6: Export service for logs (Excel & PDF)
+// ✅ CRITICAL: All timestamps in this service are received from the backend
+// Database query layer has already converted created_at to IST using CONVERT_TZ()
+// This service DOES NOT apply additional timezone conversion
+// All formatting uses Asia/Kolkata timezone purely for display consistency
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -31,13 +35,18 @@ function getISTDateForFilename(): string {
 
 /**
  * Formats a timestamp to Mumbai timezone for exports
- * @param timestamp - The timestamp to format
+ * ✅ CRITICAL: Timestamps are already in IST from database via CONVERT_TZ()
+ * This function ONLY formats for display, does not convert timezone
+ * 
+ * @param timestamp - The timestamp to format (string or Date)
  * @returns Formatted date-time string in Mumbai timezone (UTC+5:30)
  */
 function formatTimestampIST(timestamp: string | Date): string {
   try {
     const date = typeof timestamp === "string" ? new Date(timestamp) : timestamp;
     
+    // ✅ CRITICAL: Format already-IST timestamp for display
+    // No timezone offset applied - just formatting for readability
     const options: Intl.DateTimeFormatOptions = {
       day: "2-digit",
       month: "short",

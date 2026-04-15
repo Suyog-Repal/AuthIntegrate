@@ -6,7 +6,11 @@ import type { User, UserProfile, InsertUserProfile } from "@shared/schema";
 class DatabaseStorage {
   // --- Standard functions omitted for brevity ---
   async getUser(id: number): Promise<any> {
-    const [rows]: any = await db.query("SELECT * FROM users WHERE id = ?", [id]);
+    // ✅ CRITICAL FIX: Convert created_at to IST for consistency
+    const [rows]: any = await db.query(
+      `SELECT id, finger_id, CONVERT_TZ(created_at, '+00:00', '+05:30') AS created_at FROM users WHERE id = ?`,
+      [id]
+    );
     return rows[0] || null;
   }
   async createUser(data: { id: number; fingerId: number; password?: string }) {
@@ -73,15 +77,17 @@ class DatabaseStorage {
     };
   }
   async getUserProfileByUserId(userId: number) {
+    // ✅ CRITICAL FIX: Also convert reset_token_expiry to IST for consistency
     const [rows]: any = await db.query(`
-      SELECT id, user_id, email, mobile, role, password_hash, CONVERT_TZ(created_at, '+00:00', '+05:30') AS created_at, name, reset_token, reset_token_expiry 
+      SELECT id, user_id, email, mobile, role, password_hash, CONVERT_TZ(created_at, '+00:00', '+05:30') AS created_at, name, reset_token, CONVERT_TZ(reset_token_expiry, '+00:00', '+05:30') AS reset_token_expiry
       FROM user_profiles WHERE user_id = ?
     `, [userId]);
     return rows[0] || null;
   }
   async getUserProfileByEmail(email: string) {
+    // ✅ CRITICAL FIX: Also convert reset_token_expiry to IST for consistency
     const [rows]: any = await db.query(`
-      SELECT id, user_id, email, mobile, role, password_hash, CONVERT_TZ(created_at, '+00:00', '+05:30') AS created_at, name, reset_token, reset_token_expiry 
+      SELECT id, user_id, email, mobile, role, password_hash, CONVERT_TZ(created_at, '+00:00', '+05:30') AS created_at, name, reset_token, CONVERT_TZ(reset_token_expiry, '+00:00', '+05:30') AS reset_token_expiry
       FROM user_profiles WHERE email = ?
     `, [email]);
     return rows[0] || null;
