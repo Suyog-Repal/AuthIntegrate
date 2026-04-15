@@ -94,19 +94,19 @@ function formatDateIST(timestamp: number): string {
     };
     return date.toLocaleString("en-US", options);
   } catch (error) {
-    c✅ CRITICAL FIX: Prepare data for trend chart using IST-aware date calculations
+    console.error("Error formatting date IST:", error);
+    return "Unknown";
+  }
+}
+
+export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
+  // ✅ CRITICAL FIX: Prepare data for trend chart using IST-aware date calculations
   // Backend returns timestamps already converted to IST, so we group by IST dates
   const trendData = Array.from({ length: 7 }, (_, i) => {
     const dateTimestamp = getDateNDaysAgoIST(6 - i);
     const dayLogs = logs.filter((log) => {
       // ✅ CRITICAL: Compare IST dates, not UTC dates
-      const logDayTimestamp = getStartOfDayIST(log.createdAt
-export function AnalyticsCharts({ logs }: AnalyticsChartsProps) {
-  // Prepare data for trend chart (last 7 days in IST)
-  const trendData = Array.from({ length: 7 }, (_, i) => {
-    const dateTimestamp = getDateNDaysAgoIST(6 - i);
-    const dayLogs = logs.filter((log) => {
-      const logDayTimestamp = getStartOfDayIST(new Date(log.createdAt));
+      const logDayTimestamp = getStartOfDayIST(log.createdAt);
       return logDayTimestamp === dateTimestamp;
     });
 
