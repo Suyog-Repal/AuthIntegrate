@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { PageLoader } from "@/components/LoadingSpinner";
+import Layout from "@/components/Layout";
 
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Login = lazy(() => import("@/pages/Login"));
@@ -117,7 +118,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <Router />
+          <Layout>
+            <Router />
+          </Layout>
         </AuthProvider>
         <Toaster />
       </TooltipProvider>

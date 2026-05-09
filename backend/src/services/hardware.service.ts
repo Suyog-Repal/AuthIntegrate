@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import type { InsertAccessLog } from "@shared/schema";
+import type { InsertAccessLog } from "../shared_schema";
 
 export class HardwareService extends EventEmitter {
   private connected: boolean = true; 

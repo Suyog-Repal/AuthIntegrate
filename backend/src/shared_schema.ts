@@ -1,28 +1,18 @@
-// shared/schema.ts
-console.log("SHARED SCHEMA LOADING...");
+// shared_schema.ts
 import { pgTable, integer, varchar, text, timestamp, pgEnum, serial } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// =========================
-// ENUM DEFINITIONS
-// =========================
 export const accessResultEnum = pgEnum("access_result", ["GRANTED", "DENIED", "REGISTERED"]);
 export const userRoleEnum = pgEnum("user_role", ["admin", "user"]);
 
-// =========================
-// USERS TABLE (hardware-level users)
-// =========================
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   fingerId: integer("finger_id").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// =========================
-// ACCESS LOGS TABLE
-// =========================
 export const accessLogs = pgTable("access_logs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
@@ -31,9 +21,6 @@ export const accessLogs = pgTable("access_logs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// =========================
-// USER PROFILES TABLE (for web app users)
-// =========================
 export const userProfiles = pgTable("user_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id")
@@ -50,9 +37,6 @@ export const userProfiles = pgTable("user_profiles", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// =========================
-// RELATIONS
-// =========================
 export const usersRelations = relations(users, ({ many, one }) => ({
   accessLogs: many(accessLogs),
   profile: one(userProfiles, {
@@ -75,9 +59,6 @@ export const userProfilesRelations = relations(userProfiles, ({ one }) => ({
   }),
 }));
 
-// =========================
-// SCHEMAS (for validation using zod)
-// =========================
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -104,15 +85,11 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// Schema for hardware verification request
 export const hardwareVerifySchema = z.object({
     userId: z.number().int().min(0),
     password: z.string().min(1),
 });
 
-// =========================
-// TYPES
-// =========================
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type AccessLog = typeof accessLogs.$inferSelect;
@@ -121,9 +98,6 @@ export type UserProfile = typeof userProfiles.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type LoginCredentials = z.infer<typeof loginSchema>;
 
-// =========================
-// EXTENDED TYPES
-// =========================
 export type UserWithProfile = User & {
   profile: UserProfile | null;
 };

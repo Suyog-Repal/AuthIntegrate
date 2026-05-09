@@ -1,5 +1,5 @@
 import { db } from "../config/database";
-import { userProfiles, users } from "@shared/schema";
+import { userProfiles, users } from "../shared_schema";
 import { eq } from "drizzle-orm";
 
 export class UserService {

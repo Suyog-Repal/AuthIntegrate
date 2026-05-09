@@ -32,3 +32,9 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
   // Wait, me should just return req.user or fetch fresh profile.
   return successResponse(res, req.user, "User profile retrieved");
 });
+
+export const verifyHardware = asyncHandler(async (req: Request, res: Response) => {
+  const { userId, password } = req.body;
+  await authService.verifyHardware(userId, password);
+  return successResponse(res, null, "Credentials verified");
+});

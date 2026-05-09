@@ -1,0 +1,19 @@
+/* src/styles/design.css */
+
+/* Glassmorphism card */
+.glass-card {
+  @apply bg-card/80 backdrop-blur-lg rounded-xl border border-card-border shadow-lg;
+}
+
+/* Gradient button */
+.gradient-btn {
+  @apply bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium py-2 px-4 rounded-lg transition-colors hover:from-primary/90 hover:to-primary;
+}
+
+/* Smooth fade-in animation */
+.fade-in {
+  @apply opacity-0 animate-[fadeIn_0.4s_ease-out_forwards];
+}
+@keyframes fadeIn {
+  to { opacity: 1; }
+}

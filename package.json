@@ -7,5 +7,10 @@
     "build:frontend": "npm run build --prefix frontend",
     "build:backend": "npm run build --prefix backend",
     "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.7.0",
+    "zod": "^3.24.2"
   }
 }

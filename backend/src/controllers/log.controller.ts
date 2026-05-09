@@ -8,6 +8,8 @@ import { hardwareService } from "../services/hardware.service";
 export const getLogs = asyncHandler(async (req: Request, res: Response) => {
   const filters = {
     date: req.query.date,
+    month: req.query.month ? parseInt(req.query.month as string) : undefined,
+    year: req.query.year ? parseInt(req.query.year as string) : undefined,
     status: req.query.status,
     userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
     limit: req.query.limit ? parseInt(req.query.limit as string) : 100,

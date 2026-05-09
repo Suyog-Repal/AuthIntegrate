@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { db } from "../config/database";
-import { userProfiles, users } from "@shared/schema";
+import { userProfiles, users } from "../shared_schema";
 import { eq } from "drizzle-orm";
 import { authConfig } from "../config/auth";
 import { randomBytes } from "crypto";
@@ -115,6 +115,23 @@ export class AuthService {
         resetTokenExpiry: null 
       })
       .where(eq(userProfiles.userId, profile.userId));
+
+    return true;
+  }
+
+  async verifyHardware(userId: number, password: any) {
+    const profile = await db.query.userProfiles.findFirst({
+      where: eq(userProfiles.userId, userId),
+    });
+
+    if (!profile) {
+      throw new Error("User ID not fully registered");
+    }
+
+    const isValid = await bcrypt.compare(String(password), profile.passwordHash);
+    if (!isValid) {
+      throw new Error("Password does not match");
+    }
 
     return true;
   }
