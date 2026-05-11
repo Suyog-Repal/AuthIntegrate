@@ -2,14 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { authConfig } from "../config/auth.js";
 import { errorResponse } from "../utils/response.js";
+import { UserPayload } from "../types/index.js";
 
 const isDev = process.env.NODE_ENV !== "production";
 
 export interface AuthRequest extends Request {
-  user?: {
-    userId: number;
-    role: string;
-  };
+  user?: UserPayload;
 }
 
 export const authenticateJWT = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -17,11 +15,11 @@ export const authenticateJWT = (req: AuthRequest, res: Response, next: NextFunct
   const token = (authHeader && authHeader.split(" ")[1]) || req.cookies?.token;
 
   if (token) {
-    jwt.verify(token, authConfig.jwtSecret, (err: any, user: any) => {
+    jwt.verify(token, authConfig.jwtSecret, (err: jwt.VerifyErrors | null, decoded: any) => {
       if (err) {
         return errorResponse(res, "Forbidden", 403);
       }
-      req.user = user;
+      req.user = decoded as UserPayload;
       next();
     });
   } else {

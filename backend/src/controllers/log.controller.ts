@@ -4,13 +4,14 @@ import { exportService } from "../services/export.service.js";
 import { successResponse } from "../utils/response.js";
 import { asyncHandler } from "../middleware/error.js";
 import { hardwareService } from "../services/hardware.service.js";
+import { LogFilters } from "../types/index.js";
 
 export const getLogs = asyncHandler(async (req: Request, res: Response) => {
-  const filters = {
-    date: req.query.date,
+  const filters: LogFilters = {
+    date: req.query.date as string,
     month: req.query.month ? parseInt(req.query.month as string) : undefined,
     year: req.query.year ? parseInt(req.query.year as string) : undefined,
-    status: req.query.status,
+    status: req.query.status as any,
     userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
     limit: req.query.limit ? parseInt(req.query.limit as string) : 100,
   };
@@ -27,11 +28,11 @@ export const getStats = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const exportExcel = asyncHandler(async (req: Request, res: Response) => {
-  const filters = {
-    date: req.query.date,
+  const filters: LogFilters = {
+    date: req.query.date as string,
     month: req.query.month ? parseInt(req.query.month as string) : undefined,
     year: req.query.year ? parseInt(req.query.year as string) : undefined,
-    status: req.query.status,
+    status: req.query.status as any,
     userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
     limit: 10000,
   };
@@ -44,11 +45,11 @@ export const exportExcel = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const exportPDF = asyncHandler(async (req: Request, res: Response) => {
-  const filters = {
-    date: req.query.date,
+  const filters: LogFilters = {
+    date: req.query.date as string,
     month: req.query.month ? parseInt(req.query.month as string) : undefined,
     year: req.query.year ? parseInt(req.query.year as string) : undefined,
-    status: req.query.status,
+    status: req.query.status as any,
     userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
     limit: 10000,
   };

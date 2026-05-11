@@ -69,8 +69,9 @@ export class EmailService {
       await transporter.sendMail(mailOptions);
       console.log('✅ Registration email sent successfully');
       return true;
-    } catch (error: any) {
-      console.error('❌ Error sending registration email:', error.message);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('❌ Error sending registration email:', msg);
       return false;
     }
   }
@@ -110,8 +111,9 @@ export class EmailService {
       await transporter.sendMail(mailOptions);
       console.log('✅ Password reset email sent successfully');
       return true;
-    } catch (error: any) {
-      console.error('❌ Error sending password reset email:', error.message);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('❌ Error sending password reset email:', msg);
       return false;
     }
   }

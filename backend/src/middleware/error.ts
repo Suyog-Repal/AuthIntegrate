@@ -3,7 +3,11 @@ import { errorResponse } from "../utils/response.js";
 
 const isDev = process.env.NODE_ENV !== "production";
 
-export const errorHandler = (err: any, _req: Request, res: Response, _next: NextFunction) => {
+interface HttpError extends Error {
+  status?: number;
+}
+
+export const errorHandler = (err: HttpError, _req: Request, res: Response, _next: NextFunction) => {
   // Always log server errors internally
   console.error(isDev ? err.stack : `[ERROR] ${err.message}`);
 
@@ -15,6 +19,7 @@ export const errorHandler = (err: any, _req: Request, res: Response, _next: Next
 };
 
 export const asyncHandler =
-  (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+  (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>) => 
+  (req: Request, res: Response, next: NextFunction) => {
     return Promise.resolve(fn(req, res, next)).catch(next);
   };

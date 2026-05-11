@@ -2,6 +2,13 @@ import { db } from "../db/index.js";
 import { userProfiles, users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 
+export interface UpdateProfileData {
+  name?: string;
+  email?: string;
+  mobile?: string;
+  role?: string;
+}
+
 export class UserService {
   async getAllUsers() {
     return await db.query.users.findMany({
@@ -20,9 +27,9 @@ export class UserService {
     });
   }
 
-  async updateProfile(userId: number, data: any) {
+  async updateProfile(userId: number, data: UpdateProfileData) {
     return await db.update(userProfiles)
-      .set(data)
+      .set(data as any)
       .where(eq(userProfiles.userId, userId))
       .returning();
   }

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { authService } from "../services/auth.service.js";
 import { successResponse, errorResponse } from "../utils/response.js";
 import { asyncHandler } from "../middleware/error.js";
+import { AuthRequest } from "../middleware/auth.js";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
@@ -44,9 +45,11 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
   return successResponse(res, null, "Password reset successful");
 });
 
-export const me = asyncHandler(async (req: Request, res: Response) => {
-  // @ts-ignore
-  const userId = req.user.userId;
+export const me = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    return errorResponse(res, "Unauthorized", 401);
+  }
   const user = await authService.getMe(userId);
   return successResponse(res, user, "User profile retrieved");
 });

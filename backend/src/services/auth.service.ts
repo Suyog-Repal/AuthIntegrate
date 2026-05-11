@@ -9,8 +9,17 @@ import { authConfig } from "../config/auth.js";
 import { randomBytes } from "crypto";
 import { emailService } from "./email.service.js";
 
+export interface RegisterData {
+  userId: number;
+  password: string;
+  name: string;
+  email: string;
+  mobile?: string;
+  role?: string;
+}
+
 export class AuthService {
-  async register(data: any) {
+  async register(data: RegisterData) {
     const existingUser = await db.query.users.findFirst({
       where: eq(users.fingerId, data.userId),
     });
@@ -36,7 +45,7 @@ export class AuthService {
       mobile: data.mobile,
       passwordHash,
       role: data.role || "user",
-    }).returning();
+    } as any).returning();
 
     await emailService.sendRegistrationEmail({
       email: data.email,
@@ -126,7 +135,7 @@ export class AuthService {
     return true;
   }
 
-  async verifyHardware(userId: number, password: any) {
+  async verifyHardware(userId: number, password: string | number) {
     const user = await db.query.users.findFirst({
       where: eq(users.fingerId, userId),
     });

@@ -1,6 +1,7 @@
 import { db } from "../db/index.js";
 import { accessLogs, userProfiles, users } from "../db/schema.js";
 import { desc, eq, and, gte, lte, sql } from "drizzle-orm";
+import { LogFilters, AccessEventData } from "../types/index.js";
 
 export class LogService {
   async getRecentLogs(limit = 50) {
@@ -17,7 +18,7 @@ export class LogService {
     });
   }
 
-  async getLogsWithFilters(filters: any) {
+  async getLogsWithFilters(filters: LogFilters) {
     const conditions = [];
 
     if (filters.userId) {
@@ -89,8 +90,8 @@ export class LogService {
     };
   }
 
-  async createLog(data: any) {
-    return await db.insert(accessLogs).values(data).returning();
+  async createLog(data: AccessEventData) {
+    return await db.insert(accessLogs).values(data as any).returning();
   }
 }
 

@@ -12,6 +12,7 @@ import { errorHandler } from "./middleware/error.js";
 import { hardwareService } from "./services/hardware.service.js";
 import { logService } from "./services/log.service.js";
 import cookieParser from "cookie-parser";
+import { AccessEventData } from "./types/index.js";
 
 // ==========================================
 // ENVIRONMENT CONFIGURATION
@@ -166,11 +167,11 @@ app.use("/api", routes);
 io.on("connection", (socket) => {
   if (isDev) console.log("📡 Socket client connected:", socket.id);
 
-  socket.on("disconnect", (reason) => {
+  socket.on("disconnect", (reason: string) => {
     if (isDev) console.log(`🔌 Socket client disconnected: ${socket.id} (${reason})`);
   });
 
-  socket.on("error", (err) => {
+  socket.on("error", (err: Error) => {
     console.error("⚠️  Socket error:", err.message);
   });
 });
@@ -181,7 +182,7 @@ hardwareService.on("hardware_status_change", (connected: boolean) => {
 });
 
 // Process real-time access events from hardware
-hardwareService.on("access_event", async (logData) => {
+hardwareService.on("access_event", async (logData: AccessEventData) => {
   if (isDev) {
     console.log(
       `[SOCKET] access_event: userId=${logData.userId}, result=${logData.result}, note=${logData.note}`
