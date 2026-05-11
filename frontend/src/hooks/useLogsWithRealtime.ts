@@ -37,7 +37,8 @@ export function useLogsWithRealtime(filters?: LogFilters) {
       const queryString = buildQueryString(filters);
       const response = await fetch(`/api/logs${queryString}`);
       if (!response.ok) throw new Error('Failed to fetch logs');
-      return response.json();
+      const json = await response.json();
+      return json.data || [];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -73,6 +74,7 @@ export function useLogsWithRealtime(filters?: LogFilters) {
       console.log('   Status:', newLog.result);
       console.log('   Created At (from backend):', newLog.createdAt);
       console.log('   User Name:', newLog.name);
+      console.log('   Note:', newLog.note);
       
       setLogs((prev) => {
         // Avoid duplicates

@@ -1,5 +1,4 @@
 import { EventEmitter } from "events";
-import type { InsertAccessLog } from "../shared_schema";
 
 export class HardwareService extends EventEmitter {
   private connected: boolean = true; 
@@ -8,11 +7,11 @@ export class HardwareService extends EventEmitter {
     super();
   }
 
-  processAccessEvent(userId: number, result: "GRANTED" | "DENIED" | "REGISTERED", note: string) {
-    const log: InsertAccessLog = {
+  processAccessEvent(userId: number | null, result: "GRANTED" | "DENIED" | "REGISTERED", note: string) {
+    const log = {
       userId,
       result,
-      note: note,
+      note,
     };
     this.emit("access_event", log);
     this.emit('hardware_status_change', true); 

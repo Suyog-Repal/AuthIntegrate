@@ -15,8 +15,7 @@ export default function Profile() {
   // CRITICAL FIX: Profile page must fetch stats to display hardware connection status
   const { data: stats } = useQuery<SystemStats>({
     queryKey: ["stats"],
-    // Ensure it refreshes connection status
-    refetchInterval: 5000, 
+    refetchInterval: 30000, 
   });
   
   // Use the data returned by the query to determine connection status

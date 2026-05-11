@@ -10,15 +10,15 @@ import { emailService } from "./email.service";
 export class AuthService {
   async register(data: any) {
     const existingUser = await db.query.users.findFirst({
-      where: eq(users.id, data.userId),
+      where: eq(users.fingerId, data.userId),
     });
 
     if (!existingUser) {
-      throw new Error("User not found in hardware database. Please ensure fingerprint registration first.");
+      throw new Error("User not found. Please ensure fingerprint registration first.");
     }
 
     const existingProfile = await db.query.userProfiles.findFirst({
-      where: eq(userProfiles.userId, data.userId),
+      where: eq(userProfiles.userId, existingUser.id),
     });
 
     if (existingProfile) {
@@ -28,7 +28,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(data.password, authConfig.saltRounds);
 
     const [newProfile] = await db.insert(userProfiles).values({
-      userId: data.userId,
+      userId: existingUser.id,
       name: data.name,
       email: data.email,
       mobile: data.mobile,
@@ -46,18 +46,23 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
+    console.log(`[DEBUG] Login attempt for email: ${email}`);
     const profile = await db.query.userProfiles.findFirst({
       where: eq(userProfiles.email, email),
     });
 
     if (!profile) {
+      console.log(`[DEBUG] Login failed: User not found for email ${email}`);
       throw new Error("Invalid credentials");
     }
 
     const isValid = await bcrypt.compare(password, profile.passwordHash);
     if (!isValid) {
+      console.log(`[DEBUG] Login failed: Password mismatch for email ${email}`);
       throw new Error("Invalid credentials");
     }
+
+    console.log(`[DEBUG] Login successful for email ${email}. Generating JWT...`);
 
     const token = jwt.sign(
       { userId: profile.userId, role: profile.role },
@@ -120,8 +125,16 @@ export class AuthService {
   }
 
   async verifyHardware(userId: number, password: any) {
+    const user = await db.query.users.findFirst({
+      where: eq(users.fingerId, userId),
+    });
+
+    if (!user) {
+      throw new Error("User ID not fully registered");
+    }
+
     const profile = await db.query.userProfiles.findFirst({
-      where: eq(userProfiles.userId, userId),
+      where: eq(userProfiles.userId, user.id),
     });
 
     if (!profile) {
@@ -134,6 +147,21 @@ export class AuthService {
     }
 
     return true;
+  }
+
+  async getMe(userId: number) {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      with: {
+        profile: true,
+      },
+    });
+
+    if (!user || !user.profile) {
+      throw new Error("Profile not found");
+    }
+
+    return user;
   }
 }
 

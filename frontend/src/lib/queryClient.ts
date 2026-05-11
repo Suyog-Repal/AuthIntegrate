@@ -34,7 +34,7 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     try {
       const res = await api.get(queryKey.join("/"));
-      return res.data;
+      return res.data?.success ? res.data.data : res.data;
     } catch (error: any) {
       if (unauthorizedBehavior === "returnNull" && error.response?.status === 401) {
         return null;

@@ -32,12 +32,13 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5010",
+        target: "http://127.0.0.1:5010",
         changeOrigin: true,
       },
       "/socket.io": {
-        target: "http://localhost:5010",
+        target: "http://127.0.0.1:5010",
         ws: true,
+        changeOrigin: true,
       },
     },
   },

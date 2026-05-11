@@ -49,7 +49,7 @@ export default function AdminDashboard() {
   // Fetch queries
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery<SystemStats>({
     queryKey: ["stats"],
-    refetchInterval: 5000,
+    refetchInterval: false,
     enabled: isAdmin,
    });
 
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
 
   const { data: logs = [], refetch: refetchLogs } = useQuery<AccessLogWithUser[]>({
     queryKey: ["logs"],
-    refetchInterval: 3000,
+    refetchInterval: false,
     enabled: isAdmin,
   });
 
@@ -110,7 +110,7 @@ export default function AdminDashboard() {
     fetch("/api/logs")
       .then(res => res.json())
       .then(data => {
-        setLiveLogs(data);
+        setLiveLogs(data.data || []);
       })
       .catch(err => console.error("Failed to fetch logs:", err));
   }, [isAdmin]);

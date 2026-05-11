@@ -1,14 +1,15 @@
 import { Router } from "express";
 import * as authController from "../controllers/auth.controller";
-import { authenticateJWT } from "../middleware/auth";
+import { authenticateJWT, authenticateHardware } from "../middleware/auth";
 
 const router = Router();
 
 router.post("/register", authController.register);
 router.post("/login", authController.login);
+router.post("/logout", authController.logout);
 router.post("/forgot-password", authController.forgotPassword);
 router.post("/reset-password", authController.resetPassword);
 router.get("/me", authenticateJWT, authController.me);
-router.post("/verify-hardware", authController.verifyHardware);
+router.post("/verify_hardware", authenticateHardware, authController.verifyHardware);
 
 export default router;

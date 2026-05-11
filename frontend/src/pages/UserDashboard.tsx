@@ -14,17 +14,14 @@ export default function UserDashboard() {
   const [hardwareConnected, setHardwareConnected] = useState(false);
   const { data: stats } = useQuery<SystemStats>({
     queryKey: ["stats"],
-    refetchInterval: 5000,
+    refetchInterval: 30000,
   });
 
   const { data: logs = [], isLoading: logsLoading } = useQuery<AccessLogWithUser[]>({
-    queryKey: ["logs", "user"],
-    
-    // FINAL FIX: Override global staleTime to ensure logs are ALWAYS considered stale,
-    // guaranteeing a fetch when the component mounts or gets focus.
-    staleTime: 0, 
+    queryKey: ["logs", `?userId=${user?.id}`],
+    staleTime: 60000, 
     refetchOnMount: true, 
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     
     // Query is strictly enabled only if user is authenticated AND has a defined ID.
     enabled: isAuthenticated && user?.id !== undefined && user?.id !== null,
