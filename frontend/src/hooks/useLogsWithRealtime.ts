@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 import type { AccessLogWithUser } from '@shared/schema';
+import { getApiBase } from '@/lib/api';
 
 interface LogFilters {
   date?: string;
@@ -11,6 +12,24 @@ interface LogFilters {
   status?: 'GRANTED' | 'DENIED' | 'REGISTERED';
   userId?: number;
   searchTerm?: string;
+}
+
+/**
+ * Derives the Socket.IO server URL from the environment.
+ *
+ * - In local dev, Vite proxies /socket.io → localhost:5010, so we connect to
+ *   window.location.origin and the proxy forwards it automatically.
+ * - In production (Vercel), we must connect directly to the Render backend URL
+ *   because Vercel does not support WebSocket proxying.
+ */
+function getSocketUrl(): string {
+  const apiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
+  if (apiUrl) {
+    // Strip trailing /api path if present — Socket.IO connects to the root
+    return apiUrl.replace(/\/api\/?$/, '');
+  }
+  // Local dev: let the Vite proxy handle it via window.location.origin
+  return window.location.origin;
 }
 
 export function useLogsWithRealtime(filters?: LogFilters) {
@@ -35,7 +54,7 @@ export function useLogsWithRealtime(filters?: LogFilters) {
     queryKey: ['logs', filters],
     queryFn: async () => {
       const queryString = buildQueryString(filters);
-      const response = await fetch(`/api/logs${queryString}`);
+      const response = await fetch(`${getApiBase()}/api/logs${queryString}`, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch logs');
       const json = await response.json();
       return json.data || [];
@@ -52,44 +71,33 @@ export function useLogsWithRealtime(filters?: LogFilters) {
   useEffect(() => {
     // Only enable real-time if no filters are applied (showing all logs)
     const hasFilters = Boolean(
-      filters?.date || filters?.month || filters?.year || 
+      filters?.date || filters?.month || filters?.year ||
       filters?.status || filters?.userId || filters?.searchTerm
     );
 
-    if (hasFilters) {
-      console.log('⏸️ Real-time disabled while filters are active');
-      return;
-    }
+    if (hasFilters) return;
 
-    const newSocket = io();
+    const socketUrl = getSocketUrl();
+    const newSocket = io(socketUrl, {
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+    });
 
     newSocket.on('connect', () => {
-      console.log('✅ Connected to real-time updates');
+      if (import.meta.env.DEV) console.log('✅ Connected to real-time updates');
     });
 
     newSocket.on('new-log', (newLog: AccessLogWithUser) => {
-      console.log('📝 New log received from backend:');
-      console.log('   ID:', newLog.id);
-      console.log('   User ID:', newLog.userId);
-      console.log('   Status:', newLog.result);
-      console.log('   Created At (from backend):', newLog.createdAt);
-      console.log('   User Name:', newLog.name);
-      console.log('   Note:', newLog.note);
-      
       setLogs((prev) => {
-        // Avoid duplicates
-        if (prev.some((l) => l.id === newLog.id)) {
-          console.warn('⚠️ Duplicate log detected, skipping');
-          return prev;
-        }
-        // Add new log to the beginning
-        console.log('✅ Adding new log to UI');
-        return [newLog, ...prev].slice(0, 100); // Keep only last 100
+        if (prev.some((l) => l.id === newLog.id)) return prev;
+        return [newLog, ...prev].slice(0, 100);
       });
     });
 
     newSocket.on('disconnect', () => {
-      console.log('❌ Disconnected from real-time updates');
+      if (import.meta.env.DEV) console.log('❌ Disconnected from real-time updates');
     });
 
     setSocket(newSocket);
@@ -100,10 +108,5 @@ export function useLogsWithRealtime(filters?: LogFilters) {
     };
   }, [filters]);
 
-  return {
-    logs,
-    isLoading,
-    refetch,
-    socket,
-  };
+  return { logs, isLoading, refetch, socket };
 }

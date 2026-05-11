@@ -9,15 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Fingerprint, Loader2, Eye, EyeOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserProfileSchema, type InsertUserProfile } from "@shared/schema";
+import { insertUserProfileSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { z } from "zod"; 
 
 // Define a safe, extended schema for the form validation
-const registerFormSchema = insertUserProfileSchema.extend({
-    password: z.string().min(6, "Password must be at least 2 characters"),
-    name: z.string().min(2, "Name must be at least 2 characters"),
-});
+const registerFormSchema = insertUserProfileSchema;
 type RegisterFormFields = z.infer<typeof registerFormSchema>;
 
 

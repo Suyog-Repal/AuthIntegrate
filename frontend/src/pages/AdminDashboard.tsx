@@ -1,6 +1,7 @@
 // client/src/pages/AdminDashboard.tsx
 import { useQuery } from "@tanstack/react-query";
 import { io } from "socket.io-client";
+import { getApiBase } from "@/lib/api";
 import { Header } from "@/components/Header";
 import { StatsCards } from "@/components/StatsCards";
 import { LiveStatus } from "@/components/LiveStatus";
@@ -26,7 +27,6 @@ import type {
   AccessLogWithUser,
 } from "@shared/schema";
 import { useEffect, useState, useRef, useCallback } from "react"; 
-import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext"; 
 
 export default function AdminDashboard() {
@@ -107,7 +107,7 @@ export default function AdminDashboard() {
   // 🚀 STEP 5 — Fetch old logs (IMPORTANT)
   useEffect(() => {
     if (!isAdmin) return;
-    fetch("/api/logs")
+    fetch(`${getApiBase()}/api/logs`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         setLiveLogs(data.data || []);
@@ -119,11 +119,20 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!isAdmin) return;
 
-    const socket = io(window.location.origin);
+    // Derive socket URL: use VITE_API_URL root in production, window.origin in dev (Vite proxy)
+    const apiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
+    const socketUrl = apiUrl ? apiUrl.replace(/\/api\/?$/, '') : window.location.origin;
+
+    const socket = io(socketUrl, {
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+    });
 
     socket.on("connect", () => {
-      console.log("Socket.io connected successfully.");
-      setHardwareConnected(true); 
+      if (import.meta.env.DEV) console.log("Socket.io connected successfully.");
+      setHardwareConnected(true);
     });
     
     // 🚀 STEP 6 — Real-time updates
@@ -149,7 +158,7 @@ export default function AdminDashboard() {
     });
 
     socket.on("disconnect", () => {
-        console.log("Socket.io disconnected.");
+        if (import.meta.env.DEV) console.log("Socket.io disconnected.");
         setHardwareConnected(false);
     });
 

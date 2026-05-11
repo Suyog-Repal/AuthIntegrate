@@ -1,28 +1,19 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import axios from "axios";
+import { getApiBase } from "./api";
 
+// Derive the API base URL: empty string in dev (Vite proxy), full Render URL in production
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: `${getApiBase()}/api`,
   withCredentials: true,
 });
-
-async function throwIfResNotOk(res: any) {
-  if (res.status >= 400) {
-    const text = res.data ? JSON.stringify(res.data) : res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
 
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  data?: unknown,
 ): Promise<any> {
-  const response = await api.request({
-    method,
-    url,
-    data,
-  });
+  const response = await api.request({ method, url, data });
   return response.data;
 }
 

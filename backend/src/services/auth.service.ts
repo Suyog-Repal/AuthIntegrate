@@ -1,7 +1,9 @@
 import bcrypt from "bcryptjs";
+
+const isDev = process.env.NODE_ENV !== "production";
 import jwt from "jsonwebtoken";
-import { db } from "../config/database";
-import { userProfiles, users } from "../shared_schema";
+import { db } from "../db/index.js";
+import { userProfiles, users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { authConfig } from "../config/auth";
 import { randomBytes } from "crypto";
@@ -46,28 +48,28 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
-    console.log(`[DEBUG] Login attempt for email: ${email}`);
+    if (isDev) console.log(`[DEBUG] Login attempt`);
     const profile = await db.query.userProfiles.findFirst({
       where: eq(userProfiles.email, email),
     });
 
     if (!profile) {
-      console.log(`[DEBUG] Login failed: User not found for email ${email}`);
+      if (isDev) console.log(`[DEBUG] Login failed: user not found`);
       throw new Error("Invalid credentials");
     }
 
     const isValid = await bcrypt.compare(password, profile.passwordHash);
     if (!isValid) {
-      console.log(`[DEBUG] Login failed: Password mismatch for email ${email}`);
+      if (isDev) console.log(`[DEBUG] Login failed: password mismatch`);
       throw new Error("Invalid credentials");
     }
 
-    console.log(`[DEBUG] Login successful for email ${email}. Generating JWT...`);
+    if (isDev) console.log(`[DEBUG] Login successful. Generating JWT...`);
 
     const token = jwt.sign(
       { userId: profile.userId, role: profile.role },
-      authConfig.jwtSecret,
-      { expiresIn: authConfig.jwtExpiresIn }
+      authConfig.jwtSecret as string,
+      { expiresIn: authConfig.jwtExpiresIn } as any
     );
 
     return { token, profile };

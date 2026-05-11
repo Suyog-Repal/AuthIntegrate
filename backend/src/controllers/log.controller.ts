@@ -27,7 +27,15 @@ export const getStats = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const exportExcel = asyncHandler(async (req: Request, res: Response) => {
-  const logs = await logService.getLogsWithFilters({ limit: 10000 });
+  const filters = {
+    date: req.query.date,
+    month: req.query.month ? parseInt(req.query.month as string) : undefined,
+    year: req.query.year ? parseInt(req.query.year as string) : undefined,
+    status: req.query.status,
+    userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
+    limit: 10000,
+  };
+  const logs = await logService.getLogsWithFilters(filters);
   const buffer = await exportService.exportToExcel(logs);
   
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -36,7 +44,15 @@ export const exportExcel = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const exportPDF = asyncHandler(async (req: Request, res: Response) => {
-  const logs = await logService.getLogsWithFilters({ limit: 10000 });
+  const filters = {
+    date: req.query.date,
+    month: req.query.month ? parseInt(req.query.month as string) : undefined,
+    year: req.query.year ? parseInt(req.query.year as string) : undefined,
+    status: req.query.status,
+    userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
+    limit: 10000,
+  };
+  const logs = await logService.getLogsWithFilters(filters);
   const buffer = await exportService.exportToPDF(logs);
   
   res.setHeader('Content-Type', 'application/pdf');

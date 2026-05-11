@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { getApiBase } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +43,7 @@ export default function ForgotPassword() {
     setIsLoading(true);
     setApiError(null);
     try {
-      const response = await fetch("/api/auth/forgot-password", {
+      const response = await fetch(`${getApiBase()}/api/auth/forgot-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

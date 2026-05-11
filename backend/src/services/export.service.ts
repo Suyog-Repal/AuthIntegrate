@@ -36,13 +36,13 @@ export class ExportService {
     doc.text('AuthIntegrate - Access Logs Report', 14, 15);
 
     const tableData = logs.map((log) => [
-      log.id.toString(),
-      log.userId.toString(),
+      String(log.id ?? ''),
+      log.userId != null ? String(log.userId) : 'N/A',
       log.name || 'N/A',
       log.email || 'N/A',
-      log.result,
+      log.result ?? '',
       log.note || '-',
-      this.formatTimestamp(new Date(log.createdAt)),
+      log.createdAt ? this.formatTimestamp(new Date(log.createdAt)) : '-',
     ]);
 
     autoTable(doc, {

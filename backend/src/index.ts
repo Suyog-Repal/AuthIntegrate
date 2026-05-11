@@ -1,4 +1,3 @@
-console.log("DEBUG: index.ts is executing");
 import express from "express";
 import { createServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
@@ -8,87 +7,171 @@ import compression from "compression";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
-import net from "net";
 import routes from "./routes/index.js";
 import { errorHandler } from "./middleware/error.js";
 import { hardwareService } from "./services/hardware.service.js";
 import { logService } from "./services/log.service.js";
 import cookieParser from "cookie-parser";
 
-// Load environment variables
+// ==========================================
+// ENVIRONMENT CONFIGURATION
+// ==========================================
 dotenv.config();
 
+const isDev = process.env.NODE_ENV !== "production";
+
+// ==========================================
+// STARTUP ENVIRONMENT VALIDATION
+// Fail fast with clear errors before binding to a port.
+// ==========================================
+function validateEnvironment(): void {
+  const required: Record<string, string | undefined> = {
+    DATABASE_URL: process.env.DATABASE_URL,
+    JWT_SECRET:   process.env.JWT_SECRET,
+    FRONTEND_URL: process.env.FRONTEND_URL,
+  };
+
+  const missing = Object.entries(required)
+    .filter(([, val]) => !val)
+    .map(([key]) => key);
+
+  if (missing.length > 0) {
+    if (!isDev) {
+      console.error(`❌ [FATAL] Missing required environment variables in production:\n  - ${missing.join("\n  - ")}`);
+      console.error("   Set these in your Render dashboard (Environment tab) before deploying.");
+      process.exit(1);
+    } else {
+      console.warn(`⚠️  [ENV] Missing optional vars for dev: ${missing.join(", ")} (acceptable locally)`);
+    }
+  }
+
+  // HARDWARE_API_KEY is required in production
+  if (!process.env.HARDWARE_API_KEY && !isDev) {
+    console.error("❌ [FATAL] HARDWARE_API_KEY is required in production.");
+    process.exit(1);
+  }
+
+  if (!isDev) {
+    console.log("✅ Environment validation passed.");
+  }
+}
+
+validateEnvironment();
+
+// ==========================================
+// CORS ORIGINS
+// ==========================================
+const allowedOrigins = isDev
+  ? [
+      process.env.FRONTEND_URL || "http://localhost:5173",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+    ]
+  : [
+      process.env.FRONTEND_URL!, // e.g. https://your-project.vercel.app
+    ].filter(Boolean);
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no Origin header (curl, Postman, hardware devices, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: Origin '${origin}' not allowed`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-hardware-api-key"],
+};
+
+// ==========================================
+// APP & HTTP SERVER
+// ==========================================
 const app = express();
 const httpServer = createServer(app);
+
+// ==========================================
+// SOCKET.IO — HARDENED CONFIGURATION
+// ==========================================
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || "*",
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true,
   },
+  // Support both websocket and polling (critical for Render + Vercel)
+  transports: ["websocket", "polling"],
+  // Ping settings to keep connections alive through Render's load balancer
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  // Allow reconnection to work cleanly
+  allowEIO3: true,
 });
 
 // ==========================================
 // MIDDLEWARE STACK
 // ==========================================
+app.set("trust proxy", 1); // Required for Render (behind a reverse proxy)
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "*",
-  credentials: true,
-}));
+app.use(cors(corsOptions));
 app.use(compression());
-app.use(morgan("dev"));
+// Use 'combined' in production for structured logs; 'dev' locally for colour
+app.use(morgan(isDev ? "dev" : "combined"));
 app.use(cookieParser());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 
-const isDev = process.env.NODE_ENV !== "production";
-
-// Rate limiting to prevent abuse
+// ==========================================
+// RATE LIMITING
+// ==========================================
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isDev ? 1000 : 50, // Limit auth attempts
-  handler: (req, res, next, options) => {
-    console.log(`[AUTH LIMITER] Blocked request from IP ${req.ip} to ${req.originalUrl}`);
-    res.status(options.statusCode).send(options.message);
-  },
-  message: { success: false, message: "Too many authentication attempts. Please try again later." }
+  max: isDev ? 1000 : 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many authentication attempts. Please try again later." },
 });
 
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: isDev ? 5000 : 200, // Relaxed limit for polling (logs, stats)
-  handler: (req, res, next, options) => {
-    console.log(`[API LIMITER] Blocked request from IP ${req.ip} to ${req.originalUrl}`);
-    res.status(options.statusCode).send(options.message);
-  },
-  message: { success: false, message: "Too many requests. Please try again later." }
+  max: isDev ? 5000 : 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests. Please try again later." },
 });
 
-// Apply stricter limit to auth routes, and general limit to everything else
 app.use("/api/auth", authLimiter);
 app.use("/api", apiLimiter);
+
+// ==========================================
+// HEALTH CHECK (Render uses this)
+// ==========================================
+app.get("/health", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "AuthIntegrate Backend",
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+    environment: process.env.NODE_ENV || "development",
+  });
+});
 
 // ==========================================
 // ROUTES & API
 // ==========================================
 app.use("/api", routes);
 
-app.get("/health", (_req, res) => {
-  res.status(200).json({ 
-    status: "ok", 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
-
 // ==========================================
-// SOCKET.IO & REAL-TIME LOGIC
+// SOCKET.IO — REAL-TIME LOGIC
 // ==========================================
 io.on("connection", (socket) => {
-  console.log("📡 Socket client connected:", socket.id);
-  
-  socket.on("disconnect", () => {
-    console.log("🔌 Socket client disconnected:", socket.id);
+  if (isDev) console.log("📡 Socket client connected:", socket.id);
+
+  socket.on("disconnect", (reason) => {
+    if (isDev) console.log(`🔌 Socket client disconnected: ${socket.id} (${reason})`);
+  });
+
+  socket.on("error", (err) => {
+    console.error("⚠️  Socket error:", err.message);
   });
 });
 
@@ -99,20 +182,19 @@ hardwareService.on("hardware_status_change", (connected: boolean) => {
 
 // Process real-time access events from hardware
 hardwareService.on("access_event", async (logData) => {
-  console.log(`[SOCKET] Processing access_event: userId=${logData.userId}, result=${logData.result}, note=${logData.note}`);
+  if (isDev) {
+    console.log(
+      `[SOCKET] access_event: userId=${logData.userId}, result=${logData.result}, note=${logData.note}`
+    );
+  }
   try {
-    // 1. Persist the log to PostgreSQL
     const insertedLog = await logService.createLog(logData);
-    console.log(`[SOCKET] Log inserted with ID: ${insertedLog[0]?.id}`);
-    
-    // 2. Fetch the enriched log (with user/profile info) for the frontend
+    if (isDev) console.log(`[SOCKET] Log inserted with ID: ${insertedLog[0]?.id}`);
+
     const logs = await logService.getLogsWithFilters({ limit: 1 });
     if (logs && logs.length > 0) {
-      console.log(`[SOCKET] Emitting new-log to ${io.sockets.sockets.size} clients`);
-      // 3. Emit to all web dashboards
+      if (isDev) console.log(`[SOCKET] Emitting new-log to ${io.sockets.sockets.size} clients`);
       io.emit("new-log", logs[0]);
-    } else {
-      console.warn(`[SOCKET] No logs fetched after insert`);
     }
   } catch (error) {
     console.error("❌ Error processing real-time access event:", error);
@@ -120,68 +202,48 @@ hardwareService.on("access_event", async (logData) => {
 });
 
 // ==========================================
-// ERROR HANDLING
+// GLOBAL ERROR HANDLER
 // ==========================================
 app.use(errorHandler);
 
-/**
- * PRODUCTION-GRADE PORT MANAGEMENT
- * Utility to probe for an available port before attempting to bind the main server.
- * This prevents ERR_SERVER_ALREADY_LISTEN by ensuring the server only calls listen() once.
- */
-const findAvailablePort = (startPort: number): Promise<number> => {
-  return new Promise((resolve, reject) => {
-    const tester = net.createServer();
-    
-    tester.once('error', (err: any) => {
-      if (err.code === 'EADDRINUSE') {
-        // Port taken, recursively check next one
-        resolve(findAvailablePort(startPort + 1));
-      } else {
-        reject(err);
-      }
-    });
-
-    tester.once('listening', () => {
-      // Port is free, close the tester and return the port number
-      tester.close(() => resolve(startPort));
-    });
-
-    tester.listen(startPort);
-  });
-};
-
-/**
- * SERVER BOOTSTRAP
- * Standard entry point for scalable production applications.
- */
+// ==========================================
+// SERVER BOOTSTRAP
+// ==========================================
 async function startServer() {
   try {
-    const preferredPort = Number(process.env.PORT) || 5000;
-    const port = await findAvailablePort(preferredPort);
+    // Render injects PORT dynamically — we must respect it exactly
+    const PORT = Number(process.env.PORT) || 5010;
 
-    httpServer.listen(port, () => {
+    httpServer.listen(PORT, "0.0.0.0", () => {
       console.log(`\n-----------------------------------------`);
       console.log(`🚀 AuthIntegrate Backend is Online`);
-      console.log(`🔗 URL: http://localhost:${port}`);
-      console.log(`🛠️  Mode: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔗 URL: http://localhost:${PORT}`);
+      console.log(`🛠️  Mode: ${process.env.NODE_ENV || "development"}`);
       console.log(`-----------------------------------------\n`);
     });
 
-    // --- Graceful Shutdown ---
+    // Graceful shutdown — critical for Render zero-downtime deploys
     const shutdown = (signal: string) => {
       console.log(`\n🛑 ${signal} received. Closing HTTP server...`);
-      httpServer.close(() => {
-        console.log('✅ HTTP server closed. Process exiting.');
-        process.exit(0);
+      io.close(() => {
+        httpServer.close(() => {
+          console.log("✅ HTTP server closed. Process exiting.");
+          process.exit(0);
+        });
       });
     };
 
-    process.on('SIGTERM', () => shutdown('SIGTERM'));
-    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+
+    // Catch unhandled promise rejections to prevent silent crashes
+    process.on("unhandledRejection", (reason) => {
+      console.error("❌ Unhandled Promise Rejection:", reason);
+      if (!isDev) process.exit(1);
+    });
 
   } catch (error) {
-    console.error("❌ Critical Failure during server bootstrap:", error);
+    console.error("❌ Critical failure during server bootstrap:", error);
     process.exit(1);
   }
 }

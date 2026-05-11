@@ -13,6 +13,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "types": ["vite/client"],
 
     /* Linting */
     "strict": true,
@@ -23,9 +24,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["./src/shared/*"]
     }
   },
-  "include": ["src", "../shared"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

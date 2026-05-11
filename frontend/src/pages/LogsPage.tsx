@@ -1,17 +1,17 @@
 // 🔥 PHASE 3-6: Comprehensive Logs Management Page
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { LogFilters, type LogFilters as ILogFilters } from '@/components/LogFilters';
 import { LogsTable } from '@/components/LogsTable';
 import { useLogsWithRealtime } from '@/hooks/useLogsWithRealtime';
 import { AlertCircle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { getApiBase } from '@/lib/api';
 
 export function LogsPage() {
   const [filters, setFilters] = useState<ILogFilters>();
   const [isExporting, setIsExporting] = useState(false);
-  const { logs, isLoading, refetch } = useLogsWithRealtime(filters);
+  const { logs, isLoading } = useLogsWithRealtime(filters);
 
   // Calculate statistics
   const stats = {
@@ -47,7 +47,7 @@ export function LogsPage() {
       if (filters?.searchTerm) queryParams.append('search', filters.searchTerm);
 
       console.log('📤 Exporting to Excel with params:', queryParams.toString());
-      const response = await fetch(`/api/logs/export/excel?${queryParams}`);
+      const response = await fetch(`${getApiBase()}/api/logs/export/excel?${queryParams}`, { credentials: 'include' });
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -92,7 +92,7 @@ export function LogsPage() {
       if (filters?.searchTerm) queryParams.append('search', filters.searchTerm);
 
       console.log('📤 Exporting to PDF with params:', queryParams.toString());
-      const response = await fetch(`/api/logs/export/pdf?${queryParams}`);
+      const response = await fetch(`${getApiBase()}/api/logs/export/pdf?${queryParams}`, { credentials: 'include' });
       
       if (!response.ok) {
         const errorData = await response.json();

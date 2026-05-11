@@ -11,12 +11,7 @@ import type { AccessLogWithUser } from "@shared/schema";
 // NOTE: The AccessLogWithUser type is implicitly updated via shared/schema.ts
 // The log object now contains: { ..., email, mobile, name, ... }
 // Extend AccessLogWithUser to explicitly include the joined profile fields for certainty
-interface CustomAccessLog extends AccessLogWithUser {
-  email?: string;
-  mobile?: string;
-  name?: string; // Explicitly define the name field
-  created_at_ist?: string | Date;
-}
+type CustomAccessLog = AccessLogWithUser;
 
 interface LiveStatusProps {
   logs: CustomAccessLog[];

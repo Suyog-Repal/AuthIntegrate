@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LogsTable } from "@/components/LogsTable";
 import { useAuth } from "@/contexts/AuthContext";
 import type { SystemStats, AccessLogWithUser } from "@shared/schema";
-import { Activity, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Activity, CheckCircle, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function UserDashboard() {

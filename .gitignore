@@ -1,4 +1,3 @@
-```gitignore id="mjlwm7"
 # =========================
 # Dependencies
 # =========================
@@ -24,24 +23,32 @@ backend/dist/
 
 frontend/.env
 frontend/.env.local
+frontend/.env.production
 
 backend/.env
 backend/.env.local
+backend/.env.production
 
 # =========================
 # Logs
 # =========================
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
 # =========================
 # OS Files
 # =========================
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # =========================
@@ -51,43 +58,42 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
+*.iml
 
 # =========================
 # TypeScript
 # =========================
 *.tsbuildinfo
+tsconfig.tsbuildinfo
 
 # =========================
-# Coverage
+# Testing & Coverage
 # =========================
 coverage/
+.nyc_output/
+jest/
 
 # =========================
-# Vercel
+# Deployment
 # =========================
 .vercel/
-
-# =========================
-# Render
-# =========================
 .render/
-
-# =========================
-# Supabase
-# =========================
 .supabase/
+.netlify/
 
 # =========================
-# Temporary Files
+# Temporary & Cache
 # =========================
 tmp/
 temp/
-
-# =========================
-# Cache
-# =========================
 .cache/
 .parcel-cache/
+.turbo/
+dist-sw.js
+.next/
+out/
 
 # =========================
 # Drizzle
@@ -98,9 +104,13 @@ drizzle/meta/_journal.json
 # Local Development
 # =========================
 .local/
+.env.test
 
 # =========================
-# Replit
+# Package Manager Lock Files (optional)
 # =========================
-.replit
-```
+# Uncomment if you want to keep lock files in git
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+

@@ -1,5 +1,5 @@
-import { db } from "../config/database";
-import { accessLogs, userProfiles, users } from "../shared_schema";
+import { db } from "../db/index.js";
+import { accessLogs, userProfiles, users } from "../db/schema.js";
 import { desc, eq, and, gte, lte, sql } from "drizzle-orm";
 
 export class LogService {

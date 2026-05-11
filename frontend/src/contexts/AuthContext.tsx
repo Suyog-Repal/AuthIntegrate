@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { UserProfile, UserWithProfile } from "@shared/schema";
+import type { UserWithProfile } from "@shared/schema";
 
 interface AuthContextType {
   user: UserWithProfile | null;

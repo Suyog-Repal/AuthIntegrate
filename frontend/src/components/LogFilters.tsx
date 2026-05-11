@@ -1,5 +1,5 @@
 // 🔥 PHASE 4: Logs Filter UI Component
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -37,7 +37,6 @@ export function LogFilters({
   const [dateFilter, setDateFilter] = useState<'all' | 'date' | 'month-year'>('all');
 
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1;
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 

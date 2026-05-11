@@ -1,25 +1,29 @@
-import { pool } from "./src/config/database.js";
+import { pool } from "./index.js";
 
 async function run() {
+  console.log("⏳ Starting database migrations...");
   const client = await pool.connect();
   try {
-    console.log("Connected to DB!");
+    console.log("✅ Connected to database!");
+    
+    // Create Enums
     await client.query(`
-      CREATE TYPE access_result AS ENUM ('GRANTED', 'DENIED', 'REGISTERED');
-    `).catch(e => console.log(e.message));
+      DO $$ BEGIN
+        CREATE TYPE access_result AS ENUM ('GRANTED', 'DENIED', 'REGISTERED');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
 
     await client.query(`
-      CREATE TYPE user_role AS ENUM ('admin', 'user');
-    `).catch(e => console.log(e.message));
+      DO $$ BEGIN
+        CREATE TYPE user_role AS ENUM ('admin', 'user');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
 
-    // Clean up old schema
-    await client.query(`
-      DROP TABLE IF EXISTS "access_logs" CASCADE;
-      DROP TABLE IF EXISTS "user_profiles" CASCADE;
-      DROP TABLE IF EXISTS "hardware_users" CASCADE;
-      DROP TABLE IF EXISTS "users" CASCADE;
-    `).catch(e => console.log(e.message));
-
+    // Create Tables
     await client.query(`
       CREATE TABLE IF NOT EXISTS "users" (
         "id" SERIAL PRIMARY KEY,
@@ -53,20 +57,24 @@ async function run() {
       );
     `);
 
-    console.log("Tables created successfully!");
+    console.log("✨ Tables created/verified successfully!");
     
-    // Seed test data
+    // Optional: Seed initial admin or test data if needed
     const res = await client.query(`SELECT COUNT(*) FROM users;`);
     if (res.rows[0].count === "0") {
+       console.log("🌱 Seeding initial hardware users...");
        await client.query(`INSERT INTO users (finger_id) VALUES (1), (2), (99);`);
-       console.log("Seeded users.");
+       console.log("✅ Seeded users.");
     }
   } catch (error) {
-    console.error("Error creating tables:", error);
+    console.error("❌ Error during migration:", error);
   } finally {
     client.release();
-    pool.end();
+    // Do not call pool.end() if this is imported elsewhere, 
+    // but since this is a standalone migration script:
+    await pool.end();
+    console.log("👋 Migration process finished.");
   }
 }
 
-run();
+run().catch(console.error);

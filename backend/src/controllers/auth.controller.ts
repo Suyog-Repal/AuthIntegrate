@@ -2,9 +2,11 @@ import { Request, Response } from "express";
 import { authService } from "../services/auth.service";
 import { successResponse, errorResponse } from "../utils/response";
 import { asyncHandler } from "../middleware/error";
-import { db } from "../config/database";
-import { users } from "../shared_schema";
+import { db } from "../db/index.js";
+import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
+
+const isDev = process.env.NODE_ENV !== "production";
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const profile = await authService.register(req.body);
@@ -15,10 +17,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
   const data = await authService.login(email, password);
   
+  const isProduction = process.env.NODE_ENV === "production";
   res.cookie("token", data.token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProduction,          // HTTPS only in production
+    sameSite: isProduction ? "none" : "lax",  // cross-origin in prod, lax in dev
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   });
 
@@ -53,7 +56,7 @@ export const verifyHardware = asyncHandler(async (req: Request, res: Response) =
   const password = req.body.password;
   const fingerIdNum = Number(fingerId);
 
-  console.log(`[HARDWARE AUTH] Verifying hardware for finger_id=${fingerId}`);
+  if (isDev) console.log(`[HARDWARE AUTH] Verifying hardware for finger_id=${fingerId}`);
 
   if (fingerId === undefined) {
     return res.status(400).json({
@@ -84,7 +87,7 @@ export const verifyHardware = asyncHandler(async (req: Request, res: Response) =
   });
 
   if (!user || !user.profile) {
-    console.warn(`[HARDWARE AUTH] Verification failed for finger_id=${fingerId}`);
+    if (isDev) console.warn(`[HARDWARE AUTH] Verification failed for finger_id=${fingerId}`);
     return res.status(401).json({
       success: false,
       message: "Access Denied"
@@ -94,14 +97,14 @@ export const verifyHardware = asyncHandler(async (req: Request, res: Response) =
   try {
     await authService.verifyHardware(Number(fingerId), password);
   } catch (error) {
-    console.warn(`[HARDWARE AUTH] Password verification failed for finger_id=${fingerId}`);
+    if (isDev) console.warn(`[HARDWARE AUTH] Password verification failed for finger_id=${fingerId}`);
     return res.status(401).json({
       success: false,
       message: "Access Denied"
     });
   }
 
-  console.log(`[HARDWARE AUTH] Verification successful for finger_id=${fingerId}`);
+  if (isDev) console.log(`[HARDWARE AUTH] Verification successful for finger_id=${fingerId}`);
   return res.status(200).json({
     success: true,
     userId: user.fingerId,

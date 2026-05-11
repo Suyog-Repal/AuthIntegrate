@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { getApiBase } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +27,6 @@ export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
@@ -54,8 +54,10 @@ export default function ResetPassword() {
     const params = new URLSearchParams(window.location.search);
     const tokenParam = params.get("token");
     
-    console.log("🔗 Current URL:", window.location.href);
-    console.log("📋 Extracted token from URL:", tokenParam ? `${tokenParam.substring(0, 16)}... (first 16 chars)` : "NOT FOUND");
+    if (import.meta.env.DEV) {
+      console.log("🔗 Current URL:", window.location.href);
+      console.log("📋 Token found:", tokenParam ? "YES" : "NOT FOUND");
+    }
     
     if (!tokenParam) {
       setTokenValid(false);
@@ -81,13 +83,13 @@ export default function ResetPassword() {
       return;
     }
 
-    console.log("📤 Sending password reset request:");
-    console.log(`   Token: ${token.substring(0, 16)}... (first 16 chars)`);
-    console.log(`   New Password: ${data.password}`);
+    if (import.meta.env.DEV) {
+      console.log("📤 Sending password reset request");
+    }
 
     setIsResetting(true);
     try {
-      const response = await fetch("/api/auth/reset-password", {
+      const response = await fetch(`${getApiBase()}/api/auth/reset-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -105,7 +107,7 @@ export default function ResetPassword() {
         throw new Error(errorData.message || "Failed to reset password");
       }
 
-      console.log("✅ Password reset successful");
+      if (import.meta.env.DEV) console.log("✅ Password reset successful");
       setResetSuccess(true);
       toast({
         title: "Success",
@@ -188,7 +190,7 @@ export default function ResetPassword() {
     );
   }
 
-  if (tokenValid === null || isLoading) {
+  if (tokenValid === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">

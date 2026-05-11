@@ -14,7 +14,6 @@ import {
   Legend, 
   ResponsiveContainer,
 } from "recharts";
-import { formatAbsoluteTimeIST } from "@/lib/utils";
 import type { AccessLogWithUser } from "@shared/schema";
 
 interface AnalyticsChartsProps {

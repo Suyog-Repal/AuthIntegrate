@@ -1,23 +1,21 @@
 # AuthIntegrate
 
-Professional Production-Ready Architecture with Separate Frontend and Backend.
+Production-ready monorepo with isolated frontend and backend apps.
 
 ## 🏗️ Project Structure
 
 ```bash
 AuthIntegrate/
-│
-├── frontend/        # React + Vite + TS (Vercel)
-├── backend/         # Express + Drizzle + PG (Render)
-├── shared/          # Shared Schema & Types
-└── docs/            # Documentation
+├── backend/         # Express + TypeScript + Drizzle ORM for Render
+├── frontend/        # React + Vite + Tailwind for Vercel
+└── README.md
 ```
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
-- PostgreSQL (Supabase recommended)
+- Node.js 18+
+- Supabase PostgreSQL or any PostgreSQL-compatible database
 
 ### Environment Setup
 
@@ -39,24 +37,34 @@ VITE_API_URL=http://localhost:5000/api
 
 ### Installation
 ```bash
-npm run install:all
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
-### Development
+### Local Development
 ```bash
-# Start Backend
-npm run dev:backend
+cd backend && npm run dev
+cd frontend && npm run dev
+```
 
-# Start Frontend
-npm run dev:frontend
+### Production Builds
+```bash
+cd backend && npm run build
+cd frontend && npm run build
 ```
 
 ## 🛠️ Tech Stack
-- **Frontend**: React, Vite, TailwindCSS, shadcn/ui, TanStack Query, Axios.
-- **Backend**: Express, TypeScript, Drizzle ORM, PostgreSQL, JWT, Nodemailer.
-- **Security**: Helmet, CORS, Rate Limiting, Centralized Error Handling.
+- **Frontend**: React, Vite, TailwindCSS, TanStack Query, Socket.IO client
+- **Backend**: Express, Drizzle ORM, PostgreSQL, Socket.IO, JWT, Nodemailer
+- **Deployment**: Vercel for frontend, Render for backend, Supabase for database
 
-## 🔗 Deployment
-- **Frontend**: Deploy `frontend/` to Vercel.
-- **Backend**: Deploy `backend/` to Render.
-- **Database**: Use Supabase PostgreSQL.
+## 🔗 Deployment Notes
+- **Frontend**: Deploy `frontend/` directly to Vercel
+- **Backend**: Deploy `backend/` directly to Render
+- **Database**: Connect backend to Supabase PostgreSQL with `DATABASE_URL`
+- **CORS**: Backend reads `FRONTEND_URL` and allows Socket.IO connections
+
+## ✅ Cleanup
+- Removed root-level monorepo package files and shared folder dependency
+- Kept frontend and backend fully self-contained for deployment
+- Updated imports to use local shared schema within each app

@@ -7,7 +7,7 @@ import { User, Mail, Phone, Fingerprint, Calendar } from "lucide-react";
 import { formatAbsoluteTimeIST } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import type { SystemStats } from "@shared/schema";
-import { useEffect, useState } from "react";
+
 
 export default function Profile() {
   const { user } = useAuth();

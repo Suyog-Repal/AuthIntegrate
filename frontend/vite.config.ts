@@ -11,14 +11,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@shared": path.resolve(__dirname, "../shared"),
+      "@shared": path.resolve(__dirname, "./src/shared"),
     },
   },
   build: {
     outDir: "dist",
     emptyOutDir: true,
     sourcemap: false,
-    minify: "terser",
+    minify: true,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
