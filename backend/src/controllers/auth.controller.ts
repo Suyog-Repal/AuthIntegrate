@@ -30,7 +30,19 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-  res.clearCookie("token");
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  // Set headers to prevent caching
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax"
+  });
+  
   return successResponse(res, null, "Logout successful");
 });
 
@@ -47,6 +59,12 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response) =>
 
 export const me = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.userId;
+  
+  // Set headers to prevent caching of sensitive user data
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   if (!userId) {
     return errorResponse(res, "Unauthorized", 401);
   }

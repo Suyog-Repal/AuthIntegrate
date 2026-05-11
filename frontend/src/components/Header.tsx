@@ -36,8 +36,13 @@ export function Header({ hardwareConnected }: HeaderProps) {
   };
 
   const handleLogout = async () => {
-    await logout();
-    setLocation("/login");
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Fallback redirect even if API fails
+      setLocation("/login", { replace: true });
+    }
   };
 
   return (

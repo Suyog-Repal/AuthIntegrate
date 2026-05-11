@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { UserWithProfile } from "@shared/schema";
 
@@ -16,12 +17,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
+  const [, setLocation] = useLocation();
 
-  const { data: user, isLoading, refetch } = useQuery<UserWithProfile>({
+  const { data: user, isLoading, refetch } = useQuery<UserWithProfile | null>({
     queryKey: ["auth/me"],
     enabled: isInitialized,
-    retry: 1,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   useEffect(() => {
@@ -38,8 +41,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     mutationFn: async () => {
       return apiRequest("POST", "auth/logout");
     },
-    onSuccess: () => {
+    onSettled: () => {
+      // Clear all state regardless of whether the API call succeeded
+      
+      // 1. Clear React Query Cache
       queryClient.clear();
+      queryClient.setQueryData(["auth/me"], null);
+
+      // 2. Clear Browser Storage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // 3. Redirect to login
+      setLocation("/login", { replace: true });
     },
   });
 
@@ -79,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user: user || null,
-        isLoading,
+        isLoading: isLoading || !isInitialized,
         login,
         logout,
         isAuthenticated,

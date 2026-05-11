@@ -53,6 +53,10 @@ function Router() {
     <Suspense fallback={<PageLoader />}>
       <Switch>
         {/* LOGIN */}
+        <Route path="/signin">
+          <Redirect to="/login" />
+        </Route>
+
         <Route path="/login">
           {isAuthenticated ? (
             <Redirect to={isAdmin ? "/dashboard/admin" : "/dashboard/user"} />
