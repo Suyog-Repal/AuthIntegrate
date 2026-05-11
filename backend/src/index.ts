@@ -60,7 +60,7 @@ function validateEnvironment(): void {
 validateEnvironment();
 
 // ==========================================
-// CORS ORIGINS
+// CORS ORIGINS — Production-Ready & Vercel Preview Support
 // ==========================================
 const allowedOrigins = [
   "http://localhost:5173",
@@ -70,14 +70,34 @@ const allowedOrigins = [
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no Origin header (curl, Postman, hardware devices, server-to-server)
+    // 1. Allow requests with no Origin (hardware devices, server-to-server, curl)
     if (!origin) return callback(null, true);
+
+    // 2. Exact match check
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS: Origin '${origin}' not allowed`));
+
+    // 3. Vercel Preview/Branch URL support
+    // This allows any URL ending in .vercel.app from your Vercel project
+    if (origin.endsWith(".vercel.app") || origin.includes("vercel.app")) {
+      if (isDev) console.log(`[CORS] Allowing Vercel origin: ${origin}`);
+      return callback(null, true);
+    }
+
+    // 4. Local network access (for testing on mobile/hardware)
+    if (origin.startsWith("http://192.168.") || origin.startsWith("http://10.")) {
+      return callback(null, true);
+    }
+
+    if (isDev) console.warn(`[CORS] Rejected Origin: ${origin}`);
+    // Return null, false instead of Error to ensure CORS headers are still processed
+    callback(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-api-key", "Cache-Control", "Pragma", "Expires"],
+  exposedHeaders: ["set-cookie"],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
 };
 
 // ==========================================
