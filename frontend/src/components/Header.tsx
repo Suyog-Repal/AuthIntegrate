@@ -97,7 +97,7 @@ export function Header({ hardwareConnected }: HeaderProps) {
               <Button variant="ghost" className="gap-2" data-testid="button-user-menu">
                 <User className="w-5 h-5" />
                 <div className="text-left hidden sm:block">
-                  <div className="text-sm font-medium">{user?.profile?.email}</div>
+                  <div className="text-sm font-medium">{user?.profile?.name}</div>
                   <div className="text-xs text-muted-foreground capitalize">
                     {user?.profile?.role}
                   </div>
