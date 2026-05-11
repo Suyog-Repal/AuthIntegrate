@@ -77,7 +77,7 @@ const corsOptions: cors.CorsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-hardware-api-key"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
 };
 
 // ==========================================

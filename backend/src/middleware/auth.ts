@@ -35,11 +35,13 @@ export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction
 };
 
 export const authenticateHardware = (req: Request, res: Response, next: NextFunction) => {
-  const apiKey = req.headers["x-hardware-api-key"] || req.query.api_key;
+  const apiKey = req.headers["x-api-key"];
   const validKey = process.env.HARDWARE_API_KEY;
 
   if (isDev) {
-    // In development, log the attempt for debugging
+    console.log("[HARDWARE AUTH CHECK]");
+    console.log("Header API Key:", apiKey);
+    console.log("Expected API Key:", validKey);
     console.log(`[HARDWARE MIDDLEWARE] ${req.method} ${req.originalUrl}`);
   }
 
