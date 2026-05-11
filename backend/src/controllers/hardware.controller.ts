@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { hardwareService } from "../services/hardware.service";
-import { successResponse } from "../utils/response";
-import { asyncHandler } from "../middleware/error";
+import { hardwareService } from "../services/hardware.service.js";
+import { successResponse } from "../utils/response.js";
+import { asyncHandler } from "../middleware/error.js";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";

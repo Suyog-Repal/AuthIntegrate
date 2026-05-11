@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { logService } from "../services/log.service";
-import { exportService } from "../services/export.service";
-import { successResponse } from "../utils/response";
-import { asyncHandler } from "../middleware/error";
-import { hardwareService } from "../services/hardware.service";
+import { logService } from "../services/log.service.js";
+import { exportService } from "../services/export.service.js";
+import { successResponse } from "../utils/response.js";
+import { asyncHandler } from "../middleware/error.js";
+import { hardwareService } from "../services/hardware.service.js";
 
 export const getLogs = asyncHandler(async (req: Request, res: Response) => {
   const filters = {

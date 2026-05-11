@@ -1,10 +1,10 @@
 import { Router } from "express";
-import authRoutes from "./auth.routes";
-import logRoutes from "./log.routes";
-import userRoutes from "./user.routes";
-import hardwareRoutes from "./hardware.routes";
+import authRoutes from "./auth.routes.js";
+import logRoutes from "./log.routes.js";
+import userRoutes from "./user.routes.js";
+import hardwareRoutes from "./hardware.routes.js";
 
-import * as logController from "../controllers/log.controller";
+import * as logController from "../controllers/log.controller.js";
 
 const router = Router();
 

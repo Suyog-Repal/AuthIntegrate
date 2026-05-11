@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { userService } from "../services/user.service";
-import { successResponse } from "../utils/response";
-import { asyncHandler } from "../middleware/error";
+import { userService } from "../services/user.service.js";
+import { successResponse } from "../utils/response.js";
+import { asyncHandler } from "../middleware/error.js";
 
 export const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
   const users = await userService.getAllUsers();

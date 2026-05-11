@@ -1,6 +1,6 @@
 import { Router } from "express";
-import * as logController from "../controllers/log.controller";
-import { authenticateJWT } from "../middleware/auth";
+import * as logController from "../controllers/log.controller.js";
+import { authenticateJWT } from "../middleware/auth.js";
 
 const router = Router();
 

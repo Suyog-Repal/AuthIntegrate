@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { authConfig } from "../config/auth";
-import { errorResponse } from "../utils/response";
+import { authConfig } from "../config/auth.js";
+import { errorResponse } from "../utils/response.js";
 
 const isDev = process.env.NODE_ENV !== "production";
 

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { authService } from "../services/auth.service";
-import { successResponse, errorResponse } from "../utils/response";
-import { asyncHandler } from "../middleware/error";
+import { authService } from "../services/auth.service.js";
+import { successResponse, errorResponse } from "../utils/response.js";
+import { asyncHandler } from "../middleware/error.js";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
 import { eq } from "drizzle-orm";

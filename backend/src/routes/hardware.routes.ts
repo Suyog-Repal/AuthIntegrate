@@ -1,6 +1,6 @@
 import { Router } from "express";
-import * as hardwareController from "../controllers/hardware.controller";
-import { authenticateHardware } from "../middleware/auth";
+import * as hardwareController from "../controllers/hardware.controller.js";
+import { authenticateHardware } from "../middleware/auth.js";
 
 const router = Router();
 

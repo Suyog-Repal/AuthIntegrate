@@ -5,9 +5,9 @@ import jwt from "jsonwebtoken";
 import { db } from "../db/index.js";
 import { userProfiles, users } from "../db/schema.js";
 import { eq } from "drizzle-orm";
-import { authConfig } from "../config/auth";
+import { authConfig } from "../config/auth.js";
 import { randomBytes } from "crypto";
-import { emailService } from "./email.service";
+import { emailService } from "./email.service.js";
 
 export class AuthService {
   async register(data: any) {

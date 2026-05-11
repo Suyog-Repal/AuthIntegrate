@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { errorResponse } from "../utils/response";
+import { errorResponse } from "../utils/response.js";
 
 const isDev = process.env.NODE_ENV !== "production";
 

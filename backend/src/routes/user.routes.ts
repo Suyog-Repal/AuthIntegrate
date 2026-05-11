@@ -1,6 +1,6 @@
 import { Router } from "express";
-import * as userController from "../controllers/user.controller";
-import { authenticateJWT, requireAdmin } from "../middleware/auth";
+import * as userController from "../controllers/user.controller.js";
+import { authenticateJWT, requireAdmin } from "../middleware/auth.js";
 
 const router = Router();
 
