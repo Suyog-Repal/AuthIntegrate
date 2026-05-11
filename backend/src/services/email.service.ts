@@ -23,12 +23,21 @@ export class EmailService {
       return null;
     }
 
+    // 🔥 Production-Grade SMTP Config (Optimized for Render/IPv6 issues)
     return nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false, // Use STARTTLS
       auth: {
         user: emailUser,
-        pass: emailPass,
+        pass: emailPass, // Must be a Google App Password
       },
+      tls: {
+        rejectUnauthorized: false, // Helps with some network environments
+      },
+      connectionTimeout: 10000, // 10 seconds
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
   }
 

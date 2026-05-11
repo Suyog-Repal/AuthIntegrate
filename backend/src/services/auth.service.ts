@@ -47,11 +47,15 @@ export class AuthService {
       role: data.role || "user",
     } as any).returning();
 
-    await emailService.sendRegistrationEmail({
+    const emailSent = await emailService.sendRegistrationEmail({
       email: data.email,
       name: data.name,
       userId: data.userId,
     });
+
+    if (!emailSent) {
+      console.warn(`[REGISTRATION] Failed to send welcome email to ${data.email}`);
+    }
 
     return newProfile;
   }
@@ -103,12 +107,16 @@ export class AuthService {
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-    await emailService.sendPasswordResetEmail({
+    const emailSent = await emailService.sendPasswordResetEmail({
       email: profile.email,
       name: profile.name,
       resetLink,
       expiryMinutes: 15,
     });
+
+    if (!emailSent) {
+      throw new Error("Failed to send password reset email. Please try again later.");
+    }
 
     return true;
   }
