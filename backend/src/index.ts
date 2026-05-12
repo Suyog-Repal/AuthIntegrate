@@ -30,6 +30,7 @@ function validateEnvironment(): void {
     DATABASE_URL: process.env.DATABASE_URL,
     JWT_SECRET:   process.env.JWT_SECRET,
     FRONTEND_URL: process.env.FRONTEND_URL,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
   };
 
   const missing = Object.entries(required)
