@@ -23,7 +23,7 @@ const resetPasswordSchema = z
 
 type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 
-export default function ResetPassword() {
+export default function ResetPassword({ token: propToken }: { token?: string }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [token, setToken] = useState<string | null>(null);
@@ -51,12 +51,21 @@ export default function ResetPassword() {
 
   // Extract token from URL on mount
   useEffect(() => {
+    // If token is provided via props (path param), use it
+    if (propToken) {
+      if (import.meta.env.DEV) console.log("🔗 Token found in path params:", propToken);
+      setToken(propToken);
+      setTokenValid(true);
+      return;
+    }
+
+    // Otherwise look for it in query params
     const params = new URLSearchParams(window.location.search);
     const tokenParam = params.get("token");
     
     if (import.meta.env.DEV) {
       console.log("🔗 Current URL:", window.location.href);
-      console.log("📋 Token found:", tokenParam ? "YES" : "NOT FOUND");
+      console.log("📋 Token found in query:", tokenParam ? "YES" : "NOT FOUND");
     }
     
     if (!tokenParam) {
@@ -71,7 +80,7 @@ export default function ResetPassword() {
 
     setToken(tokenParam);
     setTokenValid(true);
-  }, [toast]);
+  }, [propToken, toast]);
 
   const onSubmit = async (data: ResetPasswordForm) => {
     if (!token) {

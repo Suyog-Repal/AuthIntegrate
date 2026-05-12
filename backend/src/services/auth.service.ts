@@ -104,8 +104,12 @@ export class AuthService {
       .set({ resetToken, resetTokenExpiry: expiry })
       .where(eq(userProfiles.userId, profile.userId));
 
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-    const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+    const frontendUrl = process.env.FRONTEND_URL || "https://auth-integrate.vercel.app";
+    const resetLink = `${frontendUrl}/reset-password/${resetToken}`;
+
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[AUTH] Generated reset link for ${profile.email}: ${resetLink}`);
+    }
 
     const emailSent = await emailService.sendPasswordResetEmail({
       email: profile.email,
@@ -115,18 +119,30 @@ export class AuthService {
     });
 
     if (!emailSent) {
+      console.error(`[AUTH] Failed to send reset email to ${profile.email}`);
       throw new Error("Failed to send password reset email. Please try again later.");
     }
 
+    console.log(`[AUTH] Password reset email sent successfully to ${profile.email}`);
     return true;
   }
 
   async resetPassword(token: string, newPassword: string) {
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[AUTH] Attempting to reset password with token: ${token.substring(0, 8)}...`);
+    }
+
     const profile = await db.query.userProfiles.findFirst({
       where: eq(userProfiles.resetToken, token),
     });
 
-    if (!profile || !profile.resetTokenExpiry || profile.resetTokenExpiry < new Date()) {
+    if (!profile) {
+      console.warn(`[AUTH] Password reset failed: Token not found or invalid`);
+      throw new Error("Invalid or expired reset token");
+    }
+
+    if (!profile.resetTokenExpiry || profile.resetTokenExpiry < new Date()) {
+      console.warn(`[AUTH] Password reset failed: Token expired for user ${profile.email}`);
       throw new Error("Invalid or expired reset token");
     }
 
@@ -140,6 +156,7 @@ export class AuthService {
       })
       .where(eq(userProfiles.userId, profile.userId));
 
+    console.log(`[AUTH] Password reset successful for user: ${profile.email}`);
     return true;
   }
 

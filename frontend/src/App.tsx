@@ -84,11 +84,11 @@ function Router() {
         </Route>
 
         <Route path="/reset-password">
-          {isAuthenticated ? (
-            <Redirect to={isAdmin ? "/dashboard/admin" : "/dashboard/user"} />
-          ) : (
-            <ResetPassword />
-          )}
+          <ResetPassword />
+        </Route>
+
+        <Route path="/reset-password/:token">
+          {(params) => <ResetPassword token={params.token} />}
         </Route>
 
         {/* DASHBOARDS */}
