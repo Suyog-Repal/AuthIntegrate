@@ -20,11 +20,20 @@
 
 ---
 
-## 🌟 Overview
-
-**AuthIntegrate** is a state-of-the-art authentication ecosystem that bridges the gap between digital security and physical hardware. It combines a sleek, modern React frontend with a robust Express backend and real-time IoT integration using ESP32 and biometric sensors.
-
 Whether you're securing a web app or an entire physical office, AuthIntegrate provides the tools to manage users, monitor hardware events in real-time, and generate comprehensive security reports.
+
+---
+
+## 🎯 Problem Statement
+
+Traditional authentication systems only secure digital access, leaving physical entry points vulnerable or disconnected from the digital identity. **AuthIntegrate** bridges this gap by combining biometric hardware verification with a modern web-based security infrastructure.
+
+- **The Challenge**: Traditional keys or cards can be lost, stolen, or shared.
+- **The Solution**: Biometric (Fingerprint) authentication ensures the person accessing the physical space is the same person authenticated in the digital system.
+- **The Impact**: A unified, real-time security ecosystem that scales from small offices to enterprise-grade facilities.
+
+---
+
 
 ---
 
@@ -65,6 +74,58 @@ Whether you're securing a web app or an entire physical office, AuthIntegrate pr
 - **Controller**: ESP32
 - **Sensor**: AS608 Fingerprint Module
 - **Protocol**: HTTP/HTTPS + WebSockets
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    subgraph "Client Layer"
+        User[Web User]
+        Browser[React Frontend / Vite]
+    end
+
+    subgraph "Server Layer (Node.js)"
+        API[Express.js API]
+        Socket[Socket.IO Server]
+        Auth[JWT / Bcrypt Auth]
+    end
+
+    subgraph "Data Layer"
+        DB[(PostgreSQL / Supabase)]
+        Drizzle[Drizzle ORM]
+    end
+
+    subgraph "Hardware Layer (IoT)"
+        ESP32[ESP32 Microcontroller]
+        Sensor[Fingerprint Sensor AS608]
+    end
+
+    User --> Browser
+    Browser <--> |REST API / JWT| API
+    Browser <--> |WebSockets| Socket
+    API <--> Drizzle
+    Drizzle <--> DB
+    Socket <--> ESP32
+    ESP32 <--> Sensor
+    ESP32 --> |X-API-KEY Auth| API
+```
+
+---
+
+## 🔒 Security Features
+
+AuthIntegrate is built with a security-first mindset, ensuring data integrity across both web and hardware interfaces.
+
+- **🛡️ JWT Authentication**: Stateless session management with secure token exchange.
+- **🔑 Bcrypt Hashing**: High-entropy password storage with automated salting.
+- **📡 Hardware API Security**: Requests from ESP32 are validated via `X-API-KEY` headers to prevent unauthorized hardware events.
+- **🔄 Secure Password Reset**: Token-based recovery flow with strict expiration windows.
+- **🛡️ Rate Limiting & Helmet**: Protection against Brute-Force and common web vulnerabilities.
+- **✅ Zod Validation**: Strict schema-based validation for every API endpoint.
+- **🌐 CORS Policy**: Controlled access restricted to authorized frontend domains.
+
 
 ---
 
@@ -138,6 +199,21 @@ npm run dev
 | :--- | :--- |
 | `VITE_API_URL` | Base URL of the Backend API |
 | `VITE_SOCKET_URL` | URL of the Backend Socket server |
+
+---
+
+## ☁️ Deployment Architecture
+
+The project is architected for high availability and seamless scalability across modern cloud platforms.
+
+| Service | Platform | Purpose |
+| :--- | :--- | :--- |
+| **Frontend** | [Vercel](https://vercel.com) | Edge-optimized React hosting |
+| **Backend** | [Render](https://render.com) | Scalable Node.js runtime |
+| **Database** | [Supabase](https://supabase.com) | Managed PostgreSQL instance |
+| **Emails** | [Resend](https://resend.com) | Transactional email delivery |
+| **Real-time** | [Socket.io](https://socket.io) | Bidirectional hardware communication |
+
 
 ---
 
