@@ -133,12 +133,14 @@ AuthIntegrate is built with a security-first mindset, ensuring data integrity ac
 
 <div align="center">
   <h3>🖥️ Web Dashboard</h3>
-  <img src="https://via.placeholder.com/800x450?text=Dashboard+Preview" alt="Dashboard Preview" width="800px" />
+  <img src="./dashboard.png" alt="Dashboard Preview" width="800px" />
   
   <br/>
+   <img src="./admin_dashboard.png" alt="Dashboard Preview" width="800px" />
   
+  <br/>
   <h3>🔌 Hardware Setup</h3>
-  <img src="./hardware_setup_placeholder.png" alt="Hardware Setup" width="800px" />
+  <img src="./hardware_setup.png" alt="Hardware Setup" width="800px" />
   <p><i>The hardware setup consists of an ESP32 microcontroller, a fingerprint sensor, and indicator LEDs.</i></p>
 </div>
 
